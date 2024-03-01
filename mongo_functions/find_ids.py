@@ -12,9 +12,6 @@ class FindIds:
         self.database_validator = DatabaseValidator(db_connection, log)
 
     def run_find_ids(self, search_id):
-        # if not self.database_validator.connect_to_db():
-        #     self.log.insert(ctk.END, "Falha na conexão com o banco de dados.\n")
-        #     return
 
         with running_operations_lock:
             if not running_operations:

@@ -81,6 +81,7 @@ class UserInterface:
     def open_search_modal(self):
         self.search_modal = ctk.CTk()
         self.search_modal.title("Buscar ObjectId")
+        self.search_modal.wm_iconbitmap('C:\\Users\\albin\\Documentos\\workspace\\BMongo-VIP\\src\\logo.ico')
         self.search_modal.geometry("300x150")
 
         self.object_id_entry = ctk.CTkEntry(self.search_modal, width=150)

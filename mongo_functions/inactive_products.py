@@ -12,9 +12,9 @@ class InactiveProducts:
         self.database_validator = DatabaseValidator(db_connection, log)
 
     def run_inactive_products(self):
-        if not self.database_validator.connect_to_db():
-            self.log.see(ctk.END)
-            return
+        # if not self.database_validator.connect_to_db():
+        #     self.log.insert(ctk.END, "Falha na conexão com o banco de dados.\n")
+        #     return
 
         with running_operations_lock:
             if not running_operations:
@@ -31,7 +31,7 @@ class InactiveProducts:
         self.log.insert(ctk.END, "Iterando sobre os estoques...\n")
         for estoque in estoques:
             if cancel_event.is_set():
-                self.log.insert(ctk.END)
+                self.log.insert(ctk.END,"")
                 self.log.see(ctk.END)
                 return
 

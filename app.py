@@ -1,4 +1,3 @@
-import os
 from mongo_functions.find_ids import FindIds
 from mongo_functions.inactive_products import InactiveProducts
 from database_validator.db_access import DBConnection
@@ -6,30 +5,45 @@ from database_validator.database_validator import DatabaseValidator
 from config.config import running_operations_lock, cancel_event
 from PIL import Image
 from dotenv import load_dotenv
+import os
+import sys
 import customtkinter as ctk
 import threading
 
-load_dotenv(override=True)
+extDataDir = os.getcwd()
+if getattr(sys, 'frozen', False):
+    # noinspection PyProtectedMember
+    extDataDir = sys._MEIPASS
+
+dotenv_path = os.path.join(extDataDir, '.env')
+load_dotenv(dotenv_path)
 
 
 class UserInterface:
-    
     db_user = os.getenv("DB_USER")
     db_pass = os.getenv("DB_PASS")
     db_host = os.getenv("DB_HOST")
 
     db_connection = DBConnection(db_user, db_pass, db_host, 12220)
-    
+
     def __init__(self):
+        if getattr(sys, 'frozen', False):
+            # Variáveis de compilação
+            ico_path = UserInterface.resource_path('BMongo-VIP\\src\\logo.ico')
+            background_path = UserInterface.resource_path('BMongo-VIP\\src\\background.png')
+        else:
+            # Vairáveis de desenvolvimento
+            ico_path = UserInterface.resource_path('src\\logo.ico')
+            background_path = UserInterface.resource_path('src\\background.png')
 
         ctk.set_appearance_mode("dark")
         self.app = ctk.CTk()
         self.app.title("BMongo - VIP")
-        self.app.wm_iconbitmap('C:\\Users\\albin\\Documentos\\workspace\\BMongo-VIP\\src\\logo.ico')
+        self.app.wm_iconbitmap(ico_path)
         self.app.geometry('800x600')
         self.app.config(takefocus=True)
         image_background = ctk.CTkImage(dark_image=Image.open(
-            "C:\\Users\\albin\\Documentos\\workspace\\BMongo-VIP\\src\\background.png"), size=(800, 600))
+            background_path), size=(800, 600))
         background_label = ctk.CTkLabel(self.app, image=image_background, text='')
         background_label.place(x=0, y=0, relwidth=1, relheight=1)
         self.log = ctk.CTkTextbox(self.app, width=500)
@@ -64,6 +78,7 @@ class UserInterface:
 
     def cancel_operation(self):
         with running_operations_lock:
+            # noinspection PyGlobalUndefined
             global running_operations
             running_operations = False
         cancel_event.set()
@@ -74,16 +89,36 @@ class UserInterface:
     @staticmethod
     def reset_operation_state():
         with running_operations_lock:
+            # noinspection PyGlobalUndefined
             global running_operations
             running_operations = True
         cancel_event.clear()
 
+    # noinspection PyBroadException
+    @classmethod
+    def resource_path(cls, relative_path):
+        try:
+            # noinspection PyProtectedMember
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
+
     def open_search_modal(self):
+        # noinspection PyAttributeOutsideInit
         self.search_modal = ctk.CTk()
         self.search_modal.title("Buscar ObjectId")
-        self.search_modal.wm_iconbitmap('C:\\Users\\albin\\Documentos\\workspace\\BMongo-VIP\\src\\logo.ico')
+        if getattr(sys, 'frozen', False):
+            # Variáveis de compilação
+            self.search_modal.wm_iconbitmap(UserInterface.resource_path('BMongo-VIP\\src\\logo.ico'))
+        else:
+            # Vairáveis de desenvolvimento
+            self.search_modal.wm_iconbitmap(UserInterface.resource_path('src\\logo.ico'))
+
         self.search_modal.geometry("300x150")
 
+        # noinspection PyAttributeOutsideInit
         self.object_id_entry = ctk.CTkEntry(self.search_modal, width=150)
         self.object_id_entry.pack(pady=10)
 

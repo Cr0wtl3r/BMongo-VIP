@@ -6,7 +6,6 @@ import threading
 import customtkinter as ctk
 
 
-# noinspection PyGlobalUndefined,PyMethodMayBeStatic
 class FindIds:
     def __init__(self, db_connection, log):
         self.db = db_connection.db
@@ -38,10 +37,8 @@ class FindIds:
                         self.log.insert(ctk.END, f"Encontrado na coleção {collection_name}, campo {pair['key']}\n")
                         self.log.see(ctk.END)
 
-    # noinspection PyGlobalUndefined,PyMethodMayBeStatic
     def cancel_operation(self):
         with running_operations_lock:
-            # noinspection PyGlobalUndefined
             global running_operations
             running_operations = False
 

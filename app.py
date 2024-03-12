@@ -1,3 +1,4 @@
+from mongo_functions.base_clean import BaseClean
 from mongo_functions.find_ids import FindIds
 from mongo_functions.inactive_products import InactiveProducts
 from database_validator.db_access import DBConnection
@@ -10,9 +11,11 @@ import sys
 import customtkinter as ctk
 import threading
 
+from mongo_functions.mei_able import MeiAble
+from mongo_functions.movimentations_clean import MovimentationsClean
+
 extDataDir = os.getcwd()
 if getattr(sys, 'frozen', False):
-    # noinspection PyProtectedMember
     extDataDir = sys._MEIPASS
 
 dotenv_path = os.path.join(extDataDir, '.env')
@@ -48,20 +51,43 @@ class UserInterface:
         background_label.place(x=0, y=0, relwidth=1, relheight=1)
         self.log = ctk.CTkTextbox(self.app, width=500)
         self.log.pack(pady=50)
-
         self.inactive_products = InactiveProducts(self.db_connection, self.log)
+        self.mei_able = MeiAble(self.db_connection, self.log)
         self.find_ids = FindIds(self.db_connection, self.log)
+        self.movimentations_clean = MovimentationsClean(self.db_connection, self.log)
+        self.base_clean = BaseClean(self.db_connection, self.log)
         self.database_validator = DatabaseValidator(self.db_connection, self.log)
 
         thread = threading.Thread(target=self.check_database_connection)
         thread.start()
 
         button_inactive_products = ctk.CTkButton(
-            self.app, text="Executar Inativação dos Itens Zerados ou Negativos",
+            self.app, text="Inativar produtos Zerados ou Negativos",
             command=self.inactive_products.run_thread_inactive_products, fg_color='#f6882d', hover_color='#c86e24',
             text_color='white',
             border_color='#123f8c')
         button_inactive_products.pack(pady=10)
+
+        button_mei_able = ctk.CTkButton(
+            self.app, text="Permitir o ajuste de Estoque",
+            command=self.mei_able.run_thread_mei_able, fg_color='#f6882d', hover_color='#c86e24',
+            text_color='white',
+            border_color='#123f8c')
+        button_mei_able.pack(pady=10)
+
+        button_movimentations_clean = ctk.CTkButton(
+            self.app, text="Limpa movimentoações da Base",
+            command=self.movimentations_clean.run_thread_movimentations_clean, fg_color='#f6882d', hover_color='#c86e24',
+            text_color='white',
+            border_color='#123f8c')
+        button_movimentations_clean.pack(pady=10)
+
+        button_base_clean = ctk.CTkButton(
+            self.app, text="Zera a base atual",
+            command=self.base_clean.run_thread_base_clean, fg_color='#f6882d', hover_color='#c86e24',
+            text_color='white',
+            border_color='#123f8c')
+        button_base_clean.pack(pady=10)
 
         button_find_ids = ctk.CTkButton(
             self.app, text="Localiza ID's no banco",
@@ -78,7 +104,6 @@ class UserInterface:
 
     def cancel_operation(self):
         with running_operations_lock:
-            # noinspection PyGlobalUndefined
             global running_operations
             running_operations = False
         cancel_event.set()
@@ -89,24 +114,19 @@ class UserInterface:
     @staticmethod
     def reset_operation_state():
         with running_operations_lock:
-            # noinspection PyGlobalUndefined
             global running_operations
             running_operations = True
         cancel_event.clear()
 
-    # noinspection PyBroadException
     @classmethod
     def resource_path(cls, relative_path):
         try:
-            # noinspection PyProtectedMember
             base_path = sys._MEIPASS
         except Exception:
             base_path = os.path.abspath(".")
-
         return os.path.join(base_path, relative_path)
 
     def open_search_modal(self):
-        # noinspection PyAttributeOutsideInit
         self.search_modal = ctk.CTk()
         self.search_modal.title("Buscar ObjectId")
         if getattr(sys, 'frozen', False):
@@ -117,8 +137,6 @@ class UserInterface:
             self.search_modal.wm_iconbitmap(UserInterface.resource_path('src\\logo.ico'))
 
         self.search_modal.geometry("300x150")
-
-        # noinspection PyAttributeOutsideInit
         self.object_id_entry = ctk.CTkEntry(self.search_modal, width=150)
         self.object_id_entry.pack(pady=10)
 

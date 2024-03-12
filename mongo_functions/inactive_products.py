@@ -49,7 +49,6 @@ class InactiveProducts:
         self.log.insert(ctk.END, "Iteração concluída.\n")
         self.log.see(ctk.END)
 
-    # noinspection PyGlobalUndefined,PyMethodMayBeStatic
     def cancel_operation(self):
         with running_operations_lock:
             global running_operations

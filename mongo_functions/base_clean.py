@@ -4,6 +4,7 @@ import threading
 import ctypes
 import sys
 import customtkinter as ctk
+import shutil
 from config.config import running_operations, running_operations_lock, cancel_event
 from database_validator.database_validator import DatabaseValidator
 
@@ -45,6 +46,8 @@ class BaseClean:
         self.remove_directory("C:\\DigiSat\\SuiteG6\\Dados")
         self.create_directory("C:\\DigiSat\\SuiteG6\\Dados")
 
+        self.log.insert(ctk.END, f"Conluída a limpeza da Base! Pode restaurar outra. \n")
+
     def execute_command(self, command):
         try:
             subprocess.run(command, shell=True, check=True)
@@ -63,14 +66,14 @@ class BaseClean:
 
     def remove_directory(self, directory_path):
         try:
-            os.rmdir(directory_path)
+            shutil.rmtree(directory_path)
             self.log.insert(ctk.END, f"Diretório '{directory_path}' removido com sucesso.\n")
         except FileNotFoundError:
             self.log.insert(ctk.END, f"Diretório '{directory_path}' não encontrado.\n")
         except PermissionError:
             self.log.insert(ctk.END, f"Permissão negada para remover o diretório '{directory_path}'.\n")
-        except OSError:
-            self.log.insert(ctk.END, f"O diretório '{directory_path}' não está vazio.\n")
+        except Exception as e:
+            self.log.insert(ctk.END, f"Erro ao remover o diretório '{directory_path}': {e}\n")
 
     def create_directory(self, directory_path):
         try:

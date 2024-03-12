@@ -1,6 +1,8 @@
 from mongo_functions.base_clean import BaseClean
 from mongo_functions.find_ids import FindIds
 from mongo_functions.inactive_products import InactiveProducts
+from mongo_functions.mei_able import MeiAble
+from mongo_functions.movimentations_clean import MovimentationsClean
 from database_validator.db_access import DBConnection
 from database_validator.database_validator import DatabaseValidator
 from config.config import running_operations_lock, cancel_event
@@ -11,8 +13,7 @@ import sys
 import customtkinter as ctk
 import threading
 
-from mongo_functions.mei_able import MeiAble
-from mongo_functions.movimentations_clean import MovimentationsClean
+
 
 extDataDir = os.getcwd()
 if getattr(sys, 'frozen', False):
@@ -61,6 +62,7 @@ class UserInterface:
         thread = threading.Thread(target=self.check_database_connection)
         thread.start()
 
+
         button_inactive_products = ctk.CTkButton(
             self.app, text="Inativar produtos Zerados ou Negativos",
             command=self.inactive_products.run_thread_inactive_products, fg_color='#f6882d', hover_color='#c86e24',
@@ -76,7 +78,7 @@ class UserInterface:
         button_mei_able.pack(pady=10)
 
         button_movimentations_clean = ctk.CTkButton(
-            self.app, text="Limpa movimentoações da Base",
+            self.app, text="Limpa movimentações da Base",
             command=self.movimentations_clean.run_thread_movimentations_clean, fg_color='#f6882d', hover_color='#c86e24',
             text_color='white',
             border_color='#123f8c')
@@ -101,6 +103,8 @@ class UserInterface:
             hover_color='#010c1c',
             text_color='white', border_color='#123f8c')
         cancel_button.pack(pady=25)
+
+
 
     def cancel_operation(self):
         with running_operations_lock:

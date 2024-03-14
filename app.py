@@ -42,16 +42,25 @@ class UserInterface:
 
         ctk.set_appearance_mode("dark")
         self.app = ctk.CTk()
+        self.app.geometry('900x700')
         self.app.title("BMongo - VIP")
         self.app.wm_iconbitmap(ico_path)
-        self.app.geometry('900x700')
         self.app.config(takefocus=True)
-        image_background = ctk.CTkImage(dark_image=Image.open(
-            background_path), size=(900,700))
-        background_label = ctk.CTkLabel(self.app, image=image_background, text='')
-        background_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+        self.image_background = ctk.CTkImage(dark_image=Image.open(background_path))
+        self.background_label = ctk.CTkLabel(self.app, image=self.image_background, text='')
+        self.background_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+        def update_background(*args):
+            width = self.app.winfo_width()
+            height = self.app.winfo_height()
+            self.image_background.configure(size=(width, height))
+            self.background_label.configure(image=self.image_background)
+
+        self.app.bind("<Configure>", update_background)
         self.log = ctk.CTkTextbox(self.app, width=500)
         self.log.pack(pady=50)
+
         self.inactive_products = InactiveProducts(self.db_connection, self.log)
         self.mei_able = MeiAble(self.db_connection, self.log)
         self.find_ids = FindIds(self.db_connection, self.log)

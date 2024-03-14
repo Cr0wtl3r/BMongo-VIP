@@ -1,4 +1,5 @@
 from mongo_functions.base_clean import BaseClean
+from mongo_functions.base_create import BaseCreate
 from mongo_functions.find_ids import FindIds
 from mongo_functions.inactive_products import InactiveProducts
 from mongo_functions.mei_able import MeiAble
@@ -66,6 +67,7 @@ class UserInterface:
         self.find_ids = FindIds(self.db_connection, self.log)
         self.movimentations_clean = MovimentationsClean(self.db_connection, self.log)
         self.base_clean = BaseClean(self.db_connection, self.log)
+        self.base_create = BaseCreate(self.db_connection, self.log)
         self.database_validator = DatabaseValidator(self.db_connection, self.log)
 
         thread = threading.Thread(target=self.check_database_connection)
@@ -79,13 +81,6 @@ class UserInterface:
             border_color='#123f8c')
         button_inactive_products.pack(pady=10)
 
-        button_mei_able = ctk.CTkButton(
-            self.app, text="Permitir o ajuste de Estoque",
-            command=self.mei_able.run_thread_mei_able, fg_color='#f6882d', hover_color='#c86e24',
-            text_color='white',
-            border_color='#123f8c')
-        button_mei_able.pack(pady=10)
-
         button_movimentations_clean = ctk.CTkButton(
             self.app, text="Limpa movimentações da Base",
             command=self.movimentations_clean.run_thread_movimentations_clean, fg_color='#f6882d', hover_color='#c86e24',
@@ -93,12 +88,19 @@ class UserInterface:
             border_color='#123f8c')
         button_movimentations_clean.pack(pady=10)
 
-        button_base_clean = ctk.CTkButton(
-            self.app, text="Zera a base atual",
-            command=self.base_clean.run_thread_base_clean, fg_color='#f6882d', hover_color='#c86e24',
+        button_mei_able = ctk.CTkButton(
+            self.app, text="Permitir o ajuste de Estoque",
+            command=self.mei_able.run_thread_mei_able, fg_color='#f6882d', hover_color='#c86e24',
             text_color='white',
             border_color='#123f8c')
-        button_base_clean.pack(pady=10)
+        button_mei_able.pack(pady=10)
+
+        button_base_create = ctk.CTkButton(
+            self.app, text="Criar base nova zerada!",
+            command=self.base_create.run_thread_base_creator, fg_color='#f6882d', hover_color='#c86e24',
+            text_color='white',
+            border_color='#123f8c')
+        button_base_create.pack(pady=10)
 
         button_find_ids = ctk.CTkButton(
             self.app, text="Localiza ID's no banco",
@@ -107,12 +109,18 @@ class UserInterface:
             border_color='#123f8c')
         button_find_ids.pack(pady=10)
 
+        button_base_clean = ctk.CTkButton(
+            self.app, text="Zera a base atual",
+            command=self.base_clean.run_thread_base_clean, fg_color='#f6882d', hover_color='#c86e24',
+            text_color='white',
+            border_color='#123f8c')
+        button_base_clean.pack(pady=10)
+
         cancel_button = ctk.CTkButton(
             self.app, text="Cancelar Operação", command=self.cancel_operation, fg_color='#031229',
             hover_color='#010c1c',
             text_color='white', border_color='#123f8c')
         cancel_button.pack(pady=25)
-
 
 
     def cancel_operation(self):

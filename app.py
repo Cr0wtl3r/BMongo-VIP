@@ -74,7 +74,6 @@ class UserInterface:
         thread = threading.Thread(target=self.check_database_connection)
         thread.start()
 
-
         button_reg_digisat_clean = ctk.CTkButton(
             self.app, text="Elimina os registro do Digisat do Windows",
             command=self.reg_digisat_clean.run_thread_reg_digisat_clean, fg_color='#f6882d', hover_color='#c86e24',
@@ -91,7 +90,8 @@ class UserInterface:
 
         button_movimentations_clean = ctk.CTkButton(
             self.app, text="Limpa movimentações da Base",
-            command=self.movimentations_clean.run_thread_movimentations_clean, fg_color='#f6882d', hover_color='#c86e24',
+            command=self.movimentations_clean.run_thread_movimentations_clean, fg_color='#f6882d',
+            hover_color='#c86e24',
             text_color='white',
             border_color='#123f8c')
         button_movimentations_clean.pack(pady=10)
@@ -129,7 +129,6 @@ class UserInterface:
             hover_color='#010c1c',
             text_color='white', border_color='#123f8c')
         cancel_button.pack(pady=25)
-
 
     def cancel_operation(self):
         with running_operations_lock:

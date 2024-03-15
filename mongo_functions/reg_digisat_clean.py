@@ -39,13 +39,11 @@ class RegDigisatClean:
 
         self.log.insert(ctk.END, "Executando a remoção do Digisat dos Registros do Windows...\n")
 
-        # Verifica se o processo está em execução antes de tentar pará-lo
         if self.is_process_running("ServidorG6.exe"):
             self.execute_command("taskkill /f /im ServidorG6.exe")
         else:
             self.log.insert(ctk.END, "Processo 'ServidorG6.exe' não encontrado.\n")
 
-        # Verifica se os serviços estão em execução antes de tentar pará-los
         if self.is_service_running("MongoDBDigisat"):
             self.execute_command("net stop MongoDBDigisat")
         else:

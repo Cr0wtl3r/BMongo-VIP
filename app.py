@@ -14,7 +14,7 @@ import sys
 import customtkinter as ctk
 import threading
 
-
+from mongo_functions.reg_digisat_clean import RegDigisatClean
 
 extDataDir = os.getcwd()
 if getattr(sys, 'frozen', False):
@@ -43,7 +43,7 @@ class UserInterface:
 
         ctk.set_appearance_mode("dark")
         self.app = ctk.CTk()
-        self.app.geometry('900x700')
+        self.app.geometry('950x750')
         self.app.title("BMongo - VIP")
         self.app.wm_iconbitmap(ico_path)
         self.app.config(takefocus=True)
@@ -68,11 +68,19 @@ class UserInterface:
         self.movimentations_clean = MovimentationsClean(self.db_connection, self.log)
         self.base_clean = BaseClean(self.db_connection, self.log)
         self.base_create = BaseCreate(self.db_connection, self.log)
+        self.reg_digisat_clean = RegDigisatClean(self.db_connection, self.log)
         self.database_validator = DatabaseValidator(self.db_connection, self.log)
 
         thread = threading.Thread(target=self.check_database_connection)
         thread.start()
 
+
+        button_reg_digisat_clean = ctk.CTkButton(
+            self.app, text="Elimina os registro do Digisat do Windows",
+            command=self.reg_digisat_clean.run_thread_reg_digisat_clean, fg_color='#f6882d', hover_color='#c86e24',
+            text_color='white',
+            border_color='#123f8c')
+        button_reg_digisat_clean.pack(pady=10)
 
         button_inactive_products = ctk.CTkButton(
             self.app, text="Inativar produtos Zerados ou Negativos",

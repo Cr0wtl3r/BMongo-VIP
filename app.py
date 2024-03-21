@@ -46,6 +46,7 @@ class UserInterface:
         ctk.set_appearance_mode("dark")
         self.app = ctk.CTk()
         self.app.geometry('950x750')
+        self.app.after(0, lambda: self.app.state('zoomed'))
         self.app.title("BMongo - VIP")
         self.app.wm_iconbitmap(ico_path)
         self.app.config(takefocus=True)

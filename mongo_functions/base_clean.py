@@ -36,6 +36,7 @@ class BaseClean:
         self.log.insert(ctk.END, "Executando a Limpeza da base...\n")
 
         self.execute_command("taskkill /f /im ServidorG6.exe")
+        self.execute_command("taskkill /f /im SistemaG6.exe")
 
         self.execute_command("net stop MongoDBDigisat")
         self.execute_command("net stop SincronizadorDigisat")

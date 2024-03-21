@@ -5,7 +5,6 @@ from bson import ObjectId
 import threading
 import customtkinter as ctk
 
-
 class FindIds:
     def __init__(self, db_connection, log):
         self.db = db_connection.db
@@ -13,7 +12,6 @@ class FindIds:
         self.database_validator = DatabaseValidator(db_connection, log)
 
     def run_find_ids(self, search_id):
-
         with running_operations_lock:
             if not running_operations:
                 self.log.insert(ctk.END, "Operação cancelada.\n")

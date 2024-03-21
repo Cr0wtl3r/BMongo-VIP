@@ -36,6 +36,7 @@ class BaseCreate:
         self.log.insert(ctk.END, "Executando a Limpeza da base antiga e Criação de uma nova...\n")
 
         self.execute_command("taskkill /f /im ServidorG6.exe")
+        self.execute_command("taskkill /f /im SistemaG6.exe")
 
         self.execute_command("C:\\Digisat\\SuiteG6\\MongoDB\\elevate.exe -wait net stop mongodbdigisat")
         self.execute_command("C:\\Digisat\\SuiteG6\\MongoDB\\elevate.exe -wait net stop sincronizadordigisat")

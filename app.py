@@ -1,5 +1,6 @@
 from mongo_functions.base_clean import BaseClean
 from mongo_functions.base_create import BaseCreate
+from mongo_functions.change_tributation_for_ncm import ChangeTributationForNCM
 from mongo_functions.find_ids import FindIds
 from mongo_functions.inactive_products import InactiveProducts
 from mongo_functions.mei_able import MeiAble
@@ -15,6 +16,7 @@ import customtkinter as ctk
 import threading
 
 from mongo_functions.reg_digisat_clean import RegDigisatClean
+from utils.util_modal import Modal
 
 extDataDir = os.getcwd()
 if getattr(sys, 'frozen', False):
@@ -66,6 +68,7 @@ class UserInterface:
         self.mei_able = MeiAble(self.db_connection, self.log)
         self.find_ids = FindIds(self.db_connection, self.log)
         self.movimentations_clean = MovimentationsClean(self.db_connection, self.log)
+        self.change_tributation_for_ncm = ChangeTributationForNCM(self.db_connection, self.log)
         self.base_clean = BaseClean(self.db_connection, self.log)
         self.base_create = BaseCreate(self.db_connection, self.log)
         self.reg_digisat_clean = RegDigisatClean(self.db_connection, self.log)
@@ -73,6 +76,18 @@ class UserInterface:
 
         thread = threading.Thread(target=self.check_database_connection)
         thread.start()
+
+        button_change_tributation_for_ncm = ctk.CTkButton(
+            self.app, text="Alterar A tributação de Itens por NCM",
+            command=lambda: self.open_modal("Digite os NCM's e o ID da Tributação",
+                                                 self.run_change_tributation_for_ncm,
+                                                 operation_type="run_change_tributation_for_ncm",
+                                                 show_second_entry=True),
+            fg_color='#f6882d',
+            hover_color='#c86e24',
+            text_color='white',
+            border_color='#123f8c')
+        button_change_tributation_for_ncm.pack(pady=10)
 
         button_reg_digisat_clean = ctk.CTkButton(
             self.app, text="Elimina os registro do Digisat do Windows",
@@ -112,7 +127,11 @@ class UserInterface:
 
         button_find_ids = ctk.CTkButton(
             self.app, text="Localiza ID's no banco",
-            command=self.open_search_modal, fg_color='#f6882d', hover_color='#c86e24',
+            command=lambda: self.open_modal("Digite o ID a buscar", self.run_find_ids,
+                                            operation_type="run_find_ids",
+                                            show_second_entry=False),
+            fg_color='#f6882d',
+            hover_color='#c86e24',
             text_color='white',
             border_color='#123f8c')
         button_find_ids.pack(pady=10)
@@ -154,42 +173,15 @@ class UserInterface:
             base_path = os.path.abspath(".")
         return os.path.join(base_path, relative_path)
 
-    def open_search_modal(self):
-        self.search_modal = ctk.CTk()
-        self.search_modal.title("Buscar ObjectId")
-        if getattr(sys, 'frozen', False):
-            # Variáveis de compilação
-            self.search_modal.wm_iconbitmap(UserInterface.resource_path('BMongo-VIP\\src\\logo.ico'))
-        else:
-            # Vairáveis de desenvolvimento
-            self.search_modal.wm_iconbitmap(UserInterface.resource_path('src\\logo.ico'))
 
-        self.search_modal.geometry("300x150")
-        self.object_id_entry = ctk.CTkEntry(self.search_modal, width=150)
-        self.object_id_entry.pack(pady=10)
+    def open_modal(self, title, callback, operation_type=None, show_second_entry=False):
+        modal = Modal(title, callback, operation_type=operation_type, show_second_entry=show_second_entry)
 
-        button_search = ctk.CTkButton(
-            self.search_modal, text="Pesquisar",
-            command=self.run_find_ids, fg_color='#f6882d', hover_color='#c86e24',
-            text_color='white',
-            border_color='#123f8c')
-        button_search.pack(pady=10)
-
-        modal_width = 300
-        modal_height = 150
-        window_width = self.app.winfo_width()
-        window_height = self.app.winfo_height()
-        x = (window_width // 2) - (modal_width // 2)
-        y = (window_height // 2) - (modal_height // 2)
-
-        self.search_modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
-
-        self.search_modal.mainloop()
-
-    def run_find_ids(self):
-        search_id = self.object_id_entry.get()
+    def run_find_ids(self, search_id):
         self.find_ids.run_thread_find_ids(search_id)
-        self.search_modal.destroy()
+
+    def run_change_tributation_for_ncm(self, ncms, tributation_id):
+        self.change_tributation_for_ncm.run_thread_change_tributation_for_ncm(ncms, tributation_id)
 
     def check_database_connection(self):
         try:

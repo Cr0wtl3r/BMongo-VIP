@@ -1,9 +1,17 @@
-import customtkinter as ctk
 from tkinter import StringVar, Tk
+import customtkinter as ctk
+import sys
+import os
 
 class Modal:
     def __init__(self, title, callback, operation_type, show_second_entry=False):
+        if getattr(sys, 'frozen', False):
+            ico_path = Modal.resource_path('BMongo-VIP\\src\\logo.ico')
+        else:
+            ico_path = Modal.resource_path('src\\logo.ico')
+
         self.modal = ctk.CTk()
+        self.modal.wm_iconbitmap(ico_path)
         self.modal.title(title)
         self.modal.geometry("300x150")
         self.callback = callback
@@ -62,3 +70,11 @@ class Modal:
             self.callback(ncms_list, tributation_id)
         else:
             self.callback(ncms_string)
+
+    @classmethod
+    def resource_path(cls, relative_path):
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)

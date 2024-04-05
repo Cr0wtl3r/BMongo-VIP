@@ -23,6 +23,7 @@ class MovimentationsClean:
         self.update_movimentacoes()
         self.update_recebimentos()
         self.update_turnos_lancamentos()
+        self.remove_administradores_cartao()
         self.log.insert(ctk.END, "Operações de atualização concluídas.\n")
         self.log.see(ctk.END)
 
@@ -89,6 +90,19 @@ class MovimentationsClean:
             {"EspeciePagamento.Descricao": {"$regex": ".*Cart.*", "$options": "i"}},
             {"$unset": {"EspeciePagamento.Pessoa.Imagem": ""}}
         )
+        if not self.running:
+            self.log.insert(ctk.END, "Operação cancelada durante a atualização. \n")
+            self.log.see(ctk.END)
+            return
+
+    def remove_administradores_cartao(self):
+        if not self.running:
+            self.log.insert(ctk.END, "Operação cancelada durante a atualização. \n")
+            self.log.see(ctk.END)
+            return
+
+        self.log.insert(ctk.END, "Removendo o campo de Administradores de Cartão... \n")
+        self.db.Pessoas.update_many({}, {"$unset": {"AdministradoraCartao": ""}})
         if not self.running:
             self.log.insert(ctk.END, "Operação cancelada durante a atualização. \n")
             self.log.see(ctk.END)

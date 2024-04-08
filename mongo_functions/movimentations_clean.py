@@ -101,8 +101,10 @@ class MovimentationsClean:
             self.log.see(ctk.END)
             return
 
-        self.log.insert(ctk.END, "Removendo o campo de Administradores de Cartão... \n")
-        self.db.Pessoas.update_many({}, {"$unset": {"AdministradoraCartao": ""}})
+        self.log.insert(ctk.END,
+                        "Removendo o campo de Administradores de Cartão para o 'Emitente'... \n")
+        # Atualize a query para verificar a presença de 'Emitente' no campo '_t'
+        self.db.Pessoas.update_many({"_t": "Emitente"}, {"$unset": {"AdministradoraCartao": ""}})
         if not self.running:
             self.log.insert(ctk.END, "Operação cancelada durante a atualização. \n")
             self.log.see(ctk.END)

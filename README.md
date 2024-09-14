@@ -1,2 +1,2 @@
 # Digisat-Mongo-Gerencia
-Programa focado em otimizar e facilitar a gerência do banco de dados MongoDB do sistema Digisat impregado nos clientes.
+Programa focado em otimizar e facilitar a gestão do banco de dados MongoDB utilizado no sistema Digisat implantado nos clientes.

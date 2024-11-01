@@ -1,6 +1,7 @@
+## Arquivo user_interface.py:
 from mongo_functions.base_clean import BaseClean
 from mongo_functions.base_create import BaseCreate
-from mongo_functions.change_tributation_for_ncm import ChangeTributationForNCM
+from mongo_functions.change_tributation_for_ncm import *
 from mongo_functions.find_ids import FindIds
 from mongo_functions.inactive_products import InactiveProducts
 from mongo_functions.mei_able import MeiAble
@@ -74,7 +75,7 @@ class UserInterface:
         self.mei_able = MeiAble(self.db_connection, self.log)
         self.find_ids = FindIds(self.db_connection, self.log)
         self.movimentations_clean = MovimentationsClean(self.db_connection, self.log)
-        self.change_tributation_for_ncm = ChangeTributationForNCM(self.db_connection, self.log)
+        self.change_tributation_for_ncm = ChangeTributationForNCM(self.db_connection, self.log, self.open_modal)
         self.base_clean = BaseClean(self.db_connection, self.log)
         self.base_create = BaseCreate(self.db_connection, self.log)
         self.reg_digisat_clean = RegDigisatClean(self.db_connection, self.log)
@@ -166,7 +167,11 @@ class UserInterface:
         return os.path.join(base_path, relative_path)
 
     def open_modal(self, title, callback, operation_type=None, show_second_entry=False):
-        modal = Modal(title, callback, operation_type=operation_type, show_second_entry=show_second_entry)
+        tributation_ids = []
+        if operation_type == "run_change_tributation_for_ncm":
+            tributation_ids = self.change_tributation_for_ncm.fetch_tributation_ids()
+        modal = Modal(title, callback, operation_type=operation_type, show_second_entry=show_second_entry,
+                      tributation_ids=tributation_ids)
 
     def run_find_ids(self, search_id):
         self.find_ids.run_thread_find_ids(search_id)

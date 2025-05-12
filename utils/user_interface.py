@@ -135,6 +135,12 @@ class UserInterface:
         )
         button_base_clean.grid(row=3, column=1)
 
+        button_void = ButtonCreator(
+            buttons_frame, "Botão que ainda não faz nada!",
+            self.click_void()
+        )
+        button_void.grid(row=4, column=0)
+
         cancel_button = ButtonCreator(
             self.app, "Cancelar Operação", self.cancel_operation, fg_color='#031229'
         )
@@ -186,6 +192,9 @@ class UserInterface:
         except Exception as e:
             self.log.insert(ctk.END, str(e) + "\n")
             return
+
+    def click_void(self):
+        pass
 
     def run(self):
         self.app.mainloop()

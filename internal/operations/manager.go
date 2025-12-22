@@ -1,8 +1,8 @@
 package operations
 
 import (
-	"digisat-tools/internal/config"
-	"digisat-tools/internal/database"
+	"BMongo-VIP/internal/config"
+	"BMongo-VIP/internal/database"
 )
 
 // LogFunc is a function type for logging messages

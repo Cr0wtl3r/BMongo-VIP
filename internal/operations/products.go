@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"digisat-tools/internal/database"
+	"BMongo-VIP/internal/database"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

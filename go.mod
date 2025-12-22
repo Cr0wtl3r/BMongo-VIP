@@ -1,4 +1,4 @@
-module digisat-tools
+module BMongo-VIP
 
 go 1.23
 

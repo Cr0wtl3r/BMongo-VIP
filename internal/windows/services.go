@@ -42,8 +42,41 @@ var digisatProcessNames = []string{
 	"DigisatMobile",
 	"DigisatRetaguarda",
 	"DigisatSync",
-	"MongoDB",
-	"mongod",
+	// "MongoDB", // Do not kill MongoDB as this app depends on it!
+	// "mongod",
+}
+
+// KillSyncProcess specifically kills the Digisat synchronizer
+func KillSyncProcess(log func(string)) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	log("🔄 Encerrando Sincronizador Digisat...")
+
+	name := "DigisatSync"
+	killed := 0
+
+	// Check if running
+	checkCmd := exec.CommandContext(ctx, "tasklist", "/FI", fmt.Sprintf("IMAGENAME eq %s.exe", name))
+	checkOutput, _ := checkCmd.CombinedOutput()
+
+	if strings.Contains(string(checkOutput), name) {
+		killCmd := exec.CommandContext(ctx, "taskkill", "/F", "/IM", fmt.Sprintf("%s.exe", name))
+		if out, err := killCmd.CombinedOutput(); err != nil {
+			log(fmt.Sprintf("⚠️ Falha ao matar %s: %v (%s)", name, err, string(out)))
+			return 0, err
+		}
+		log(fmt.Sprintf("✅ %s encerrado.", name))
+		killed = 1
+	} else {
+		log(fmt.Sprintf("ℹ️ %s não estava rodando.", name))
+	}
+
+	// Also stop the service to be sure
+	log("🔄 Parando serviço DigisatSync...")
+	exec.CommandContext(ctx, "net", "stop", "DigisatSync").Run()
+
+	return killed, nil
 }
 
 // GetDigisatServices returns a list of Digisat services and their status

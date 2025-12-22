@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"digisat-tools/internal/database"
-	"digisat-tools/internal/operations"
-	"digisat-tools/internal/windows"
+	"BMongo-VIP/internal/database"
+	"BMongo-VIP/internal/operations"
+	"BMongo-VIP/internal/windows"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -579,7 +579,7 @@ func (a *App) UpdateEmitenteFromFile(filePath string) error {
 
 	a.addLog(fmt.Sprintf("📋 Dados lidos - CNPJ: %s, Razão: %s", info.Cnpj, info.RazaoSocial))
 
-	err = a.operations.UpdateEmitente(info, func(msg string) {
+	err = a.operations.UpdateEmitente(info, filePath, func(msg string) {
 		a.addLog(msg)
 	})
 

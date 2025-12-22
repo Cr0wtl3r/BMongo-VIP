@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"sync"
+
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -18,7 +20,10 @@ type Connection struct {
 	Database *mongo.Database
 }
 
-var instance *Connection
+var (
+	instance *Connection
+	once     sync.Once
+)
 
 // GetConnection returns the singleton database connection
 func GetConnection() *Connection {
@@ -27,48 +32,64 @@ func GetConnection() *Connection {
 
 // Connect creates a new MongoDB connection
 func Connect() (*Connection, error) {
+	var err error
+
 	// Load .env file
 	godotenv.Load()
 
-	user := os.Getenv("DB_USER")
-	pass := os.Getenv("DB_PASS")
-	host := os.Getenv("DB_HOST")
-	port := "12220"
-	dbName := "DigisatServer"
+	once.Do(func() {
+		user := os.Getenv("DB_USER")
+		pass := os.Getenv("DB_PASS")
+		host := os.Getenv("DB_HOST")
 
-	if user == "" || pass == "" || host == "" {
-		return nil, fmt.Errorf("variáveis de ambiente DB_USER, DB_PASS e DB_HOST devem estar definidas")
-	}
+		port := os.Getenv("DB_PORT")
+		if port == "" {
+			port = "12220"
+		}
 
-	// URL encode credentials
-	uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/?serverSelectionTimeoutMS=5000",
-		url.QueryEscape(user),
-		url.QueryEscape(pass),
-		url.QueryEscape(host),
-		port,
-	)
+		dbName := os.Getenv("DB_NAME")
+		if dbName == "" {
+			dbName = "DigisatServer"
+		}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+		if user == "" || pass == "" || host == "" {
+			err = fmt.Errorf("variáveis de ambiente DB_USER, DB_PASS e DB_HOST devem estar definidas")
+			return
+		}
 
-	clientOptions := options.Client().ApplyURI(uri).SetMaxPoolSize(50)
-	client, err := mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao conectar ao MongoDB: %w", err)
-	}
+		// URL encode credentials
+		uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/?serverSelectionTimeoutMS=5000",
+			url.QueryEscape(user),
+			url.QueryEscape(pass),
+			url.QueryEscape(host),
+			port,
+		)
 
-	// Ping to verify connection
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao verificar conexão: %w", err)
-	}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
 
-	instance = &Connection{
-		Client:   client,
-		Database: client.Database(dbName),
-	}
+		clientOptions := options.Client().ApplyURI(uri).SetMaxPoolSize(50)
+		var client *mongo.Client
+		client, err = mongo.Connect(ctx, clientOptions)
+		if err != nil {
+			err = fmt.Errorf("erro ao conectar ao MongoDB: %w", err)
+			return
+		}
 
-	return instance, nil
+		// Ping to verify connection
+		err = client.Ping(ctx, nil)
+		if err != nil {
+			err = fmt.Errorf("erro ao verificar conexão: %w", err)
+			return
+		}
+
+		instance = &Connection{
+			Client:   client,
+			Database: client.Database(dbName),
+		}
+	})
+
+	return instance, err
 }
 
 // Disconnect closes the MongoDB connection
@@ -108,4 +129,56 @@ const (
 	CollectionTurnosLancamentos       = "TurnosLancamentos"
 	CollectionConfiguracoesServidor   = "ConfiguracoesServidor"
 	CollectionTributacoesFederal      = "TributacoesFederal"
+	CollectionPagamentos              = "Pagamentos"
+	CollectionAbastecimentos          = "Abastecimentos"
+	CollectionConfiguracoes           = "Configuracoes"
+
+	// Additional collections for complete emitente deletion (from legacy)
+	CollectionAgendamentos                            = "Agendamentos"
+	CollectionAnunciosMercadoLivre                    = "AnunciosMercadoLivre"
+	CollectionArquivosDigisatContabil                 = "ArquivosDigisatContabil"
+	CollectionBicos                                   = "Bicos"
+	CollectionBoletos                                 = "Boletos"
+	CollectionBoletosSemParcelaRecebimentoBoleto      = "BoletosSemParcelaRecebimentoBoleto"
+	CollectionCartasCorrecao                          = "CartasCorrecao"
+	CollectionCheques                                 = "Cheques"
+	CollectionComissoes                               = "Comissoes"
+	CollectionConferenciasEstoque                     = "ConferenciasEstoque"
+	CollectionConhecimentosTransporteEletronico       = "ConhecimentosTransporteEletronico"
+	CollectionConsultasServicoCredito                 = "ConsultasServicoCredito"
+	CollectionControlesEntrega                        = "ControlesEntrega"
+	CollectionDadosDigisatContabil                    = "DadosDigisatContabil"
+	CollectionDadosDigisatScanntech                   = "DadosDigisatScanntech"
+	CollectionDevolucoes                              = "Devolucoes"
+	CollectionEntregasDelivery                        = "EntregasDelivery"
+	CollectionEstoquesFisicos                         = "EstoquesFisicos"
+	CollectionEstoquesFisicosMovimentacaoInterna      = "EstoquesFisicosMovimentacaoInterna"
+	CollectionGestaoContratos                         = "GestaoContratos"
+	CollectionInternacoes                             = "Internacoes"
+	CollectionInutilizacoes                           = "Inutilizacoes"
+	CollectionItensCreditoDebitoCashback              = "ItensCreditoDebitoCashback"
+	CollectionItensCreditoDebitoCliente               = "ItensCreditoDebitoCliente"
+	CollectionItemMesaContaOcorrencias                = "ItemMesaContaOcorrencias"
+	CollectionItensMesaConta                          = "ItensMesaConta"
+	CollectionItensPedidoRestaurante                  = "ItensPedidoRestaurante"
+	CollectionManifestacaoDestinatario                = "ManifestacaoDestinatario"
+	CollectionManifestosEletronicoDocumentoFiscal     = "ManifestosEletronicoDocumentoFiscal"
+	CollectionMaosObra                                = "MaosObra"
+	CollectionMovimentosConta                         = "MovimentosConta"
+	CollectionOrcamentosIndustria                     = "OrcamentosIndustria"
+	CollectionOrdensProducao                          = "OrdensProducao"
+	CollectionReceitas                                = "Receitas"
+	CollectionRomaneiosCarga                          = "RomaneiosCarga"
+	CollectionValesPresente                           = "ValesPresente"
+	CollectionTurnos                                  = "Turnos"
+	CollectionJornadasTrabalho                        = "JornadasTrabalho"
+	CollectionFolhasLmc                               = "FolhasLmc"
+	CollectionMesasContasClienteBloqueadas            = "MesasContasClienteBloqueadas"
+	CollectionDescontinuidadesEncerrante              = "DescontinuidadesEncerrante"
+	CollectionSaldosIcmsStRetido                      = "SaldosIcmsStRetido"
+	CollectionXmlMovimentacoes                        = "XmlMovimentacoes"
+	CollectionOrdensCardapio                          = "OrdensCardapio"
+	CollectionRegistrosPafEcf                         = "RegistrosPafEcf"
+	CollectionArquivosSngpc                           = "ArquivosSngpc"
+	CollectionConhecimentosTransporteRodoviarioCargas = "ConhecimentosTransporteRodoviarioCargas"
 )

@@ -66,7 +66,7 @@ export function InvoiceStatusModal({
                 />
                 <button className="file-picker-btn" onClick={() => {
                     if (!invoiceNumber) return showError('Informe o número para buscar!');
-                    // Backend defaults Series to "1" if empty
+
                     
                     GetInvoiceByNumber(invoiceType, invoiceSeries, invoiceNumber)
                        .then((inv: any) => {
@@ -88,7 +88,7 @@ export function InvoiceStatusModal({
            </div>
         </div>
 
-        {/* Invoice Preview Card */}
+        {}
          {portalResult && (
           <div className="invoice-preview-card">
               <div className="preview-item">
@@ -121,7 +121,7 @@ export function InvoiceStatusModal({
           }}>Cancelar</button>
           <button className="primary" onClick={async () => {
             if (!invoiceNumber) return showError('Informe o número!');
-            // Backend defaults Series to "1"
+
             
             try {
               await ChangeInvoiceStatus(invoiceType, invoiceSeries, invoiceNumber, invoiceStatus);

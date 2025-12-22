@@ -2,7 +2,11 @@ package main
 
 import (
 	"embed"
+	"os"
 
+	"BMongo-VIP/internal/crypto"
+
+	"github.com/joho/godotenv"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -11,11 +15,26 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+//go:embed .env.enc
+var envEncContent string
+
 func main() {
-	// Create an instance of the app structure
+	godotenv.Load()
+
+	if envEncContent != "" {
+		decrypted, err := crypto.Decrypt(envEncContent, crypto.Key)
+		if err == nil {
+			embeddedEnv, _ := godotenv.Unmarshal(decrypted)
+			for key, value := range embeddedEnv {
+				if os.Getenv(key) == "" {
+					os.Setenv(key, value)
+				}
+			}
+		}
+	}
+
 	app := NewApp()
 
-	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "Digisat Tools Suite",
 		Width:  1100,

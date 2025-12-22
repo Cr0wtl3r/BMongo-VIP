@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// ZeroAllStock sets all product stock quantities to zero
+
 func (m *Manager) ZeroAllStock(log LogFunc) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
@@ -18,7 +18,7 @@ func (m *Manager) ZeroAllStock(log LogFunc) (int, error) {
 
 	estoques := m.conn.GetCollection(database.CollectionEstoques)
 
-	// Update all stock quantities to 0
+
 	result, err := estoques.UpdateMany(ctx,
 		bson.M{},
 		bson.M{
@@ -37,7 +37,7 @@ func (m *Manager) ZeroAllStock(log LogFunc) (int, error) {
 	return count, nil
 }
 
-// ZeroNegativeStock sets only negative stock quantities to zero
+
 func (m *Manager) ZeroNegativeStock(log LogFunc) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
@@ -46,7 +46,7 @@ func (m *Manager) ZeroNegativeStock(log LogFunc) (int, error) {
 
 	estoques := m.conn.GetCollection(database.CollectionEstoques)
 
-	// Find and update only negative quantities
+
 	filter := bson.M{
 		"Quantidades.0.Quantidade": bson.M{"$lt": 0},
 	}
@@ -69,14 +69,14 @@ func (m *Manager) ZeroNegativeStock(log LogFunc) (int, error) {
 	return count, nil
 }
 
-// ZeroAllPrices sets all product prices (cost and sale) to zero
+
 func (m *Manager) ZeroAllPrices(log LogFunc) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	log("🔄 Zerando TODOS os preços...")
 
-	// Zero prices in ProdutosServicosEmpresa
+
 	produtosEmpresa := m.conn.GetCollection(database.CollectionProdutosServicosEmpresa)
 
 	result, err := produtosEmpresa.UpdateMany(ctx,

@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// OperationType defines the type of operation for rollback
+
 type OperationType string
 
 const (
@@ -20,7 +20,7 @@ const (
 	OpChangeTribFederal  OperationType = "ChangeTributationFederal"
 )
 
-// OperationRecord stores information needed for rollback
+
 type OperationRecord struct {
 	ID        string                 `json:"id"`
 	Type      OperationType          `json:"type"`
@@ -30,7 +30,7 @@ type OperationRecord struct {
 	Undoable  bool                   `json:"undoable"`
 }
 
-// RollbackManager handles operation history and rollback
+
 type RollbackManager struct {
 	history []OperationRecord
 	mu      sync.RWMutex
@@ -38,16 +38,16 @@ type RollbackManager struct {
 	maxOps  int
 }
 
-// NewRollbackManager creates a new rollback manager
+
 func NewRollbackManager(conn *database.Connection) *RollbackManager {
 	return &RollbackManager{
 		history: make([]OperationRecord, 0),
 		conn:    conn,
-		maxOps:  5, // Keep last 5 operations
+		maxOps:  5,
 	}
 }
 
-// RecordOperation adds an operation to history
+
 func (rm *RollbackManager) RecordOperation(opType OperationType, label string, details map[string]interface{}, undoable bool) string {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
@@ -64,7 +64,7 @@ func (rm *RollbackManager) RecordOperation(opType OperationType, label string, d
 
 	rm.history = append(rm.history, record)
 
-	// Keep only last N operations
+
 	if len(rm.history) > rm.maxOps {
 		rm.history = rm.history[len(rm.history)-rm.maxOps:]
 	}
@@ -72,7 +72,7 @@ func (rm *RollbackManager) RecordOperation(opType OperationType, label string, d
 	return id
 }
 
-// GetUndoableOperations returns operations that can be undone
+
 func (rm *RollbackManager) GetUndoableOperations() []OperationRecord {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
@@ -86,7 +86,7 @@ func (rm *RollbackManager) GetUndoableOperations() []OperationRecord {
 	return undoable
 }
 
-// UndoOperation reverses a specific operation
+
 func (rm *RollbackManager) UndoOperation(opID string, log LogFunc) error {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
@@ -129,13 +129,13 @@ func (rm *RollbackManager) UndoOperation(opID string, log LogFunc) error {
 		return fmt.Errorf("tipo de operação não suportado para rollback: %s", target.Type)
 	}
 
-	// Remove from history after successful undo
+
 	rm.history = append(rm.history[:targetIdx], rm.history[targetIdx+1:]...)
 
 	return nil
 }
 
-// undoInactivateProducts re-activates products that were inactivated
+
 func (rm *RollbackManager) undoInactivateProducts(ctx context.Context, details map[string]interface{}, log LogFunc) error {
 	productIDs, ok := details["productIds"].([]string)
 	if !ok || len(productIDs) == 0 {
@@ -166,7 +166,7 @@ func (rm *RollbackManager) undoInactivateProducts(ctx context.Context, details m
 	return nil
 }
 
-// undoTributationChange restores previous tributation
+
 func (rm *RollbackManager) undoTributationChange(ctx context.Context, details map[string]interface{}, log LogFunc) error {
 	changes, ok := details["changes"].([]map[string]interface{})
 	if !ok || len(changes) == 0 {
@@ -219,7 +219,7 @@ func (rm *RollbackManager) undoTributationChange(ctx context.Context, details ma
 	return nil
 }
 
-// ClearHistory removes all history
+
 func (rm *RollbackManager) ClearHistory() {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()

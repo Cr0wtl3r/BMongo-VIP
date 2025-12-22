@@ -17,7 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// EmitenteInfo holds data parsed from info.dat XML
+
 type EmitenteInfo struct {
 	Cnpj                string `xml:"Cnpj"`
 	RazaoSocial         string `xml:"RazaoSocial"`
@@ -34,34 +34,34 @@ type EmitenteInfo struct {
 	CodigoIbgeMunicipio string `xml:"CodigoIbgeMunicipio"`
 }
 
-// InfoDatRoot represents the root element of info.dat
+
 type InfoDatRoot struct {
 	XMLName  xml.Name     `xml:"Emitente"`
 	Emitente EmitenteInfo `xml:",any"`
 }
 
-// MunicipioInfo holds municipality data from IBGE/ViaCEP
+
 type MunicipioInfo struct {
 	Nome       string
 	CodigoIbge int
 	UF         UFInfo
 }
 
-// UFInfo holds state info
+
 type UFInfo struct {
 	Sigla      string
 	Nome       string
 	CodigoIbge int
 }
 
-// EmitenteBasic is a simplified emitente for listing
+
 type EmitenteBasic struct {
 	ID   string `json:"id"`
 	Nome string `json:"nome"`
 	Cnpj string `json:"cnpj"`
 }
 
-// ParseInfoDat parses XML from info.dat file
+
 func ParseInfoDat(filePath string) (*EmitenteInfo, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -76,24 +76,24 @@ func ParseInfoDat(filePath string) (*EmitenteInfo, error) {
 
 	info := &EmitenteInfo{}
 
-	// Strategy 1: Standard XML Unmarshal
-	// Pre-process: Replace encoding if necessary or just try raw
+
+
 	var root InfoDatRoot
 	if err := xml.Unmarshal(data, &root); err == nil && root.Emitente.Cnpj != "" {
 		return &root.Emitente, nil
 	}
 
-	// Strategy 2: Direct Unmarshal
+
 	if err := xml.Unmarshal(data, info); err == nil && info.Cnpj != "" {
 		return info, nil
 	}
 
-	// Strategy 3: Manual "Legacy" Parsing (Regex/String scanning)
-	// This mimics the legacy behavior which is robust against structural variations
-	// and often ignores namespaces or root elements.
+
+
+
 	content := string(data)
 
-	// Helper to extract tag content
+
 	extract := func(tag string) string {
 		return extractTagValue(content, tag)
 	}
@@ -113,26 +113,26 @@ func ParseInfoDat(filePath string) (*EmitenteInfo, error) {
 	info.CodigoIbgeMunicipio = extract("CodigoIbgeMunicipio")
 
 	if info.Cnpj == "" {
-		// Log for debugging? We can't log here easily without LogFunc.
-		// Return error or partial?
-		// User provided log showed empty CNPJ, so this fallback is critical.
+
+
+
 		return nil, fmt.Errorf("falha ao parsear XML: CNPJ não encontrado (tente verificar o formato do arquivo)")
 	}
 
-	return info, nil // Success with manual parsing
+	return info, nil
 }
 
-// extractTagValue finds <tag>value</tag> case-insensitive or loose
+
 func extractTagValue(content, tag string) string {
-	// Crude but effective for simple legacy XML
-	// This assumes tags are not nested in comments etc.
+
+
 	startTag := "<" + tag + ">"
 	endTag := "</" + tag + ">"
 
 	s := 0
 	e := 0
 
-	// Find start
+
 	for i := 0; i < len(content)-len(startTag); i++ {
 		if content[i:i+len(startTag)] == startTag {
 			s = i + len(startTag)
@@ -143,7 +143,7 @@ func extractTagValue(content, tag string) string {
 		return ""
 	}
 
-	// Find end
+
 	for i := s; i < len(content)-len(endTag); i++ {
 		if content[i:i+len(endTag)] == endTag {
 			e = i
@@ -157,8 +157,7 @@ func extractTagValue(content, tag string) string {
 	return ""
 }
 
-// UpdateEmitente updates the Matriz person with new data from info.dat
-// NOW ACCEPTS filePath to copy correctly
+
 func (m *Manager) UpdateEmitente(info *EmitenteInfo, filePath string, log LogFunc) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
@@ -172,7 +171,7 @@ func (m *Manager) UpdateEmitente(info *EmitenteInfo, filePath string, log LogFun
 	municipio, err := ConsultaMunicipio(info.CodigoIbgeMunicipio)
 	if err != nil {
 		log(fmt.Sprintf("⚠️ Erro ao consultar município: %v (continuando...)", err))
-		// Continue with basic info
+
 		municipio = &MunicipioInfo{
 			Nome:       "Município",
 			CodigoIbge: 0,
@@ -182,7 +181,7 @@ func (m *Manager) UpdateEmitente(info *EmitenteInfo, filePath string, log LogFun
 
 	log(fmt.Sprintf("📍 Município: %s - %s", municipio.Nome, municipio.UF.Sigla))
 
-	// Find Matriz (emitente principal)
+
 	pessoas := m.conn.GetCollection(database.CollectionPessoas)
 	filter := bson.M{
 		"_t": bson.M{"$in": []string{"Matriz"}},
@@ -190,7 +189,7 @@ func (m *Manager) UpdateEmitente(info *EmitenteInfo, filePath string, log LogFun
 
 	log("🔍 Buscando emitente Matriz no banco de dados...")
 
-	// Build update document
+
 	update := bson.M{
 		"$set": bson.M{
 			"Nome":                                               info.RazaoSocial,
@@ -230,17 +229,17 @@ func (m *Manager) UpdateEmitente(info *EmitenteInfo, filePath string, log LogFun
 		return fmt.Errorf("nenhum emitente Matriz encontrado")
 	}
 
-	// COPY INFO.DAT TO SERVER (CRITICAL FOR LEGACY COMPATIBILITY)
+
 	log(fmt.Sprintf("📂 Copiando info.dat de origem: %s", filePath))
 	serverPath := `C:\DigiSat\SuiteG6\Servidor\info.dat`
 
-	// Create directory if it doesn't exist (safety check)
+
 	serverDir := `C:\DigiSat\SuiteG6\Servidor`
 	if err := os.MkdirAll(serverDir, 0755); err != nil {
 		log(fmt.Sprintf("⚠️ Erro ao criar diretório do servidor: %v", err))
 	}
 
-	// Use the correct source path
+
 	if _, err := os.Stat(filePath); err == nil {
 		if err := copyFile(filePath, serverPath); err != nil {
 			log(fmt.Sprintf("⚠️ Falha ao copiar info.dat para servidor: %v", err))
@@ -255,7 +254,7 @@ func (m *Manager) UpdateEmitente(info *EmitenteInfo, filePath string, log LogFun
 	return nil
 }
 
-// UF data lookup table (IBGE codes)
+
 var ufData = map[string]UFInfo{
 	"AC": {Sigla: "AC", Nome: "Acre", CodigoIbge: 12},
 	"AL": {Sigla: "AL", Nome: "Alagoas", CodigoIbge: 27},
@@ -286,9 +285,9 @@ var ufData = map[string]UFInfo{
 	"TO": {Sigla: "TO", Nome: "Tocantins", CodigoIbge: 17},
 }
 
-// ConsultaMunicipio fetches municipality info by IBGE code
+
 func ConsultaMunicipio(codigoIbge string) (*MunicipioInfo, error) {
-	// Extract UF from IBGE code (first 2 digits)
+
 	if len(codigoIbge) < 2 {
 		return nil, fmt.Errorf("código IBGE inválido")
 	}
@@ -302,7 +301,7 @@ func ConsultaMunicipio(codigoIbge string) (*MunicipioInfo, error) {
 		}
 	}
 
-	// Call IBGE API to get municipality name
+
 	url := fmt.Sprintf("https://servicodados.ibge.gov.br/api/v1/localidades/municipios/%s", codigoIbge)
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Get(url)
@@ -317,7 +316,7 @@ func ConsultaMunicipio(codigoIbge string) (*MunicipioInfo, error) {
 	}
 
 	if err := decodeJSON(resp.Body, &result); err != nil {
-		// Fallback: return with just IBGE code
+
 		ibgeInt := 0
 		fmt.Sscanf(codigoIbge, "%d", &ibgeInt)
 		return &MunicipioInfo{
@@ -334,7 +333,7 @@ func ConsultaMunicipio(codigoIbge string) (*MunicipioInfo, error) {
 	}, nil
 }
 
-// ListEmitentes returns all emitentes
+
 func (m *Manager) ListEmitentes(log LogFunc) ([]EmitenteBasic, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -374,8 +373,7 @@ func (m *Manager) ListEmitentes(log LogFunc) ([]EmitenteBasic, error) {
 	return emitentes, nil
 }
 
-// DeleteEmitente removes an emitente and associated data
-// Implements full cascade delete matching legacy logic
+
 func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
@@ -385,7 +383,7 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 		return fmt.Errorf("ID inválido: %v", err)
 	}
 
-	// 0. Kill Digisat Sync Process to release file locks on info.dat
+
 	log("⚠️ Encerrando Sincronizador Digisat para liberar arquivos...")
 	if count, err := windows.KillSyncProcess(func(msg string) {
 		log("   " + msg)
@@ -397,18 +395,18 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 		}
 	}
 
-	// 0.1 Get Emitente Info BEFORE deleting (to check info.dat match)
+
 	log(fmt.Sprintf("🗑️ Iniciando exclusão do emitente %s...", emitenteID))
 	pessoasCollection := m.conn.GetCollection(database.CollectionPessoas)
 
 	var emitenteToDelete struct {
 		Cnpj string `bson:"Cnpj"`
 	}
-	// We ignore error here as it might be partially deleted already,
-	// but we try to get CNPJ for safety check on info.dat
+
+
 	_ = pessoasCollection.FindOne(ctx, bson.M{"_id": oid}).Decode(&emitenteToDelete)
 
-	// Helper function to delete from collection by EmpresaReferencia
+
 	deleteFromCollection := func(collectionName string) {
 		col := m.conn.GetCollection(collectionName)
 		res, err := col.DeleteMany(ctx, bson.M{"EmpresaReferencia": oid})
@@ -419,13 +417,13 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 		}
 	}
 
-	// ============================================
-	// COMPLETE CLEANUP - ALL COLLECTIONS (LEGACY)
-	// ============================================
+
+
+
 	log("🔄 Removendo dados vinculados ao emitente...")
 	log("   (Limpeza completa de 50+ coleções)")
 
-	// Financial collections
+
 	log("💰 Financeiro...")
 	deleteFromCollection(database.CollectionMovimentacoes)
 	deleteFromCollection(database.CollectionRecebimentos)
@@ -439,7 +437,7 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionItensCreditoDebitoCliente)
 	deleteFromCollection(database.CollectionItensCreditoDebitoCashback)
 
-	// Movements & Operations
+
 	log("📦 Movimentações...")
 	deleteFromCollection(database.CollectionAbastecimentos)
 	deleteFromCollection(database.CollectionDevolucoes)
@@ -453,7 +451,7 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionRomaneiosCarga)
 	deleteFromCollection(database.CollectionXmlMovimentacoes)
 
-	// Restaurant/Food Service
+
 	log("🍽️ Restaurante/Food Service...")
 	deleteFromCollection(database.CollectionItensMesaConta)
 	deleteFromCollection(database.CollectionItemMesaContaOcorrencias)
@@ -462,7 +460,7 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionOrdensCardapio)
 	deleteFromCollection(database.CollectionReceitas)
 
-	// Stock & Inventory
+
 	log("📊 Estoques...")
 	deleteFromCollection(database.CollectionEstoquesFisicos)
 	deleteFromCollection(database.CollectionEstoquesFisicosMovimentacaoInterna)
@@ -472,13 +470,13 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionFolhasLmc)
 	deleteFromCollection(database.CollectionSaldosIcmsStRetido)
 
-	// Production & Industry
+
 	log("🏭 Produção/Indústria...")
 	deleteFromCollection(database.CollectionOrdensProducao)
 	deleteFromCollection(database.CollectionOrcamentosIndustria)
 	deleteFromCollection(database.CollectionMaosObra)
 
-	// Integration & External
+
 	log("🔗 Integrações...")
 	deleteFromCollection(database.CollectionAnunciosMercadoLivre)
 	deleteFromCollection(database.CollectionDadosDigisatContabil)
@@ -486,7 +484,7 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionArquivosDigisatContabil)
 	deleteFromCollection(database.CollectionArquivosSngpc)
 
-	// Scheduling & Personnel
+
 	log("📅 Agendamentos/Pessoal...")
 	deleteFromCollection(database.CollectionAgendamentos)
 	deleteFromCollection(database.CollectionTurnos)
@@ -494,14 +492,14 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionJornadasTrabalho)
 	deleteFromCollection(database.CollectionInternacoes)
 
-	// Contracts & Control
+
 	log("📋 Contratos/Controle...")
 	deleteFromCollection(database.CollectionGestaoContratos)
 	deleteFromCollection(database.CollectionControlesEntrega)
 	deleteFromCollection(database.CollectionValesPresente)
 	deleteFromCollection(database.CollectionRegistrosPafEcf)
 
-	// Products & Services links
+
 	log("🔗 Produtos/Serviços vinculados...")
 	pseCollection := m.conn.GetCollection(database.CollectionProdutosServicosEmpresa)
 	estoqueCollection := m.conn.GetCollection(database.CollectionEstoques)
@@ -513,7 +511,7 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 		log(fmt.Sprintf("   ✓ ProdutosServicosEmpresa: %d removidos", res.DeletedCount))
 	}
 
-	// Cleanup orphaned Estoques (stocks not referenced by any PSE)
+
 	log("   🧹 Verificando estoques órfãos...")
 	cur, err := estoqueCollection.Find(ctx, bson.M{})
 	if err != nil {
@@ -538,12 +536,25 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 		}
 	}
 
-	// Configuration collections (CRITICAL for server startup)
+
+	log("🔢 Sequências e Tokens...")
+	deleteFromCollection(database.CollectionSequenciasMovimentacoes)
+	deleteFromCollection(database.CollectionTokens)
+
+
 	log("⚙️ Configurações (crítico para o servidor)...")
 	deleteFromCollection(database.CollectionConfiguracoesServidor)
 	deleteFromCollection(database.CollectionConfiguracoes)
 
-	// 8. Finally, delete the Person (Emitente)
+
+
+
+	log("👤 Removendo perfis de usuários vinculados ao emitente...")
+	if err := m.removeUsuarioPerfis(ctx, oid, log); err != nil {
+		log(fmt.Sprintf("⚠️ Erro ao remover perfis de usuários: %v", err))
+	}
+
+
 	log("🔄 Removendo cadastro do Emitente...")
 	res, err = pessoasCollection.DeleteOne(ctx, bson.M{"_id": oid})
 	if err != nil {
@@ -554,13 +565,13 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 		return fmt.Errorf("emitente não encontrado para exclusão")
 	}
 
-	// 9. Check and clean info.dat if it belongs to this emitente
+
 	log("🔍 Verificando integridade do servidor (info.dat)...")
 	serverPath := `C:\DigiSat\SuiteG6\Servidor\info.dat`
 	if _, err := os.Stat(serverPath); err == nil {
-		// Parse existing info.dat to check if it matches the deleted company
+
 		if info, err := ParseInfoDat(serverPath); err == nil {
-			// Normalize CNPJ (remove non-digits) if needed, but usually they match format
+
 			if info.Cnpj == emitenteToDelete.Cnpj && emitenteToDelete.Cnpj != "" {
 				log(fmt.Sprintf("⚠️ O arquivo info.dat pertence ao emitente excluído (%s). Removendo arquivo...", info.Cnpj))
 				if err := os.Remove(serverPath); err != nil {
@@ -576,7 +587,34 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	return nil
 }
 
-// copyFile copies a file from src to dst.
+
+func (m *Manager) removeUsuarioPerfis(ctx context.Context, emitenteID primitive.ObjectID, log LogFunc) error {
+	usuariosCollection := m.conn.GetCollection(database.CollectionUsuarios)
+
+
+
+	result, err := usuariosCollection.UpdateMany(ctx,
+		bson.M{},
+		bson.M{
+			"$pull": bson.M{
+				"Perfis": bson.M{
+					"EmpresaReferencia": emitenteID,
+				},
+			},
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao remover perfis de usuários: %w", err)
+	}
+
+	if result.ModifiedCount > 0 {
+		log(fmt.Sprintf("   ✓ Perfis removidos de %d usuários", result.ModifiedCount))
+	}
+
+	return nil
+}
+
+
 func copyFile(src, dst string) error {
 	sourceFile, err := os.Open(src)
 	if err != nil {
@@ -594,7 +632,7 @@ func copyFile(src, dst string) error {
 	return err
 }
 
-// Helper to decode JSON
+
 func decodeJSON(r io.Reader, v interface{}) error {
 	data, err := io.ReadAll(r)
 	if err != nil {

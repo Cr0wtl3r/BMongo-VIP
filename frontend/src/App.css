@@ -24,7 +24,6 @@ body {
   overflow: hidden;
 }
 
-/* Main Container */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -43,7 +42,6 @@ body {
   z-index: 0;
 }
 
-/* Header */
 .app-header {
   display: flex;
   justify-content: space-between;
@@ -86,7 +84,6 @@ body {
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-/* Hamburger Button */
 .hamburger-btn {
   display: flex;
   flex-direction: column;
@@ -113,7 +110,6 @@ body {
   background: var(--accent);
 }
 
-/* Main Content */
 .main-content {
   flex: 1;
   display: flex;
@@ -129,7 +125,6 @@ body {
   margin-right: 280px;
 }
 
-/* Quick Access Bar */
 .quick-access {
   display: flex;
   gap: 0.75rem;
@@ -161,7 +156,6 @@ body {
   font-size: 1rem;
 }
 
-/* Logs Panel */
 .logs-panel {
   flex: 1;
   display: flex;
@@ -243,7 +237,6 @@ body {
   color: white;
 }
 
-/* Global Scrollbar Styling */
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(246, 136, 45, 0.4) rgba(0, 0, 0, 0.2);
@@ -273,7 +266,6 @@ body {
   background: rgba(0, 0, 0, 0.3);
 }
 
-/* Sidebar Backdrop */
 .sidebar-backdrop {
   position: fixed;
   inset: 0;
@@ -282,7 +274,6 @@ body {
   animation: fadeIn 0.2s ease;
 }
 
-/* Sidebar - Fixed lateral */
 .sidebar {
   position: fixed;
   top: 0;
@@ -295,7 +286,7 @@ body {
   transition: right 0.3s ease;
   display: flex;
   flex-direction: column;
-  padding-top: 60px; /* Space for header */
+  padding-top: 60px;
 }
 
 .sidebar.open {
@@ -417,7 +408,6 @@ body {
   opacity: 1;
 }
 
-/* Modal styles */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -440,7 +430,6 @@ body {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
-/* Wider modal for backup/restore */
 .modal.modal-wide {
   width: 520px;
   padding: 2rem;
@@ -457,7 +446,6 @@ body {
   line-height: 1.5;
 }
 
-/* File picker row */
 .file-picker-row {
   display: flex;
   gap: 0.5rem;
@@ -484,7 +472,6 @@ body {
   background: rgba(246, 136, 45, 0.25);
 }
 
-/* Checkbox row */
 .checkbox-row {
   display: flex;
   align-items: center;
@@ -595,7 +582,6 @@ body {
   color: white;
 }
 
-/* Toast Styles */
 .toast {
   position: fixed;
   top: 20px;
@@ -618,7 +604,6 @@ body {
   background-color: #ef4444;
 }
 
-/* Invoice Preview Card */
 .invoice-preview-card {
   background: #1e293b;
   border: 1px solid #334155;
@@ -710,7 +695,6 @@ body {
   transform: translateY(-1px);
 }
 
-/* Undo List Styles */
 .undo-list {
   display: flex;
   flex-direction: column;
@@ -762,7 +746,6 @@ body {
   color: white;
 }
 
-/* Large Modal */
 .modal-large {
   width: 700px;
   max-width: 95vw;
@@ -770,7 +753,6 @@ body {
   overflow-y: auto;
 }
 
-/* Filter Grid */
 .filter-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -859,7 +841,6 @@ body {
   color: var(--border);
 }
 
-/* Results Table */
 .results-table-container {
   max-height: 300px;
   overflow-y: auto;
@@ -900,7 +881,6 @@ body {
   margin-top: 0.5rem;
 }
 
-/* Bulk Actions */
 .bulk-actions {
   display: flex;
   align-items: center;
@@ -943,7 +923,6 @@ body {
   color: white;
 }
 
-/* Bulk All Actions */
 .bulk-all-actions {
   display: flex;
   align-items: center;
@@ -986,7 +965,6 @@ body {
   background: var(--danger);
 }
 
-/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -1005,7 +983,6 @@ body {
   }
 }
 
-/* Success Toast Overlay */
 .success-toast-overlay {
   position: fixed;
   inset: 0;
@@ -1052,7 +1029,6 @@ body {
   }
 }
 
-/* Emitentes List Styles */
 .emitentes-list {
   display: flex;
   flex-direction: column;
@@ -1116,7 +1092,6 @@ body {
   color: white;
 }
 
-/* File Picker Row */
 .file-picker-row {
   display: flex;
   gap: 0.5rem;

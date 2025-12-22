@@ -9,12 +9,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// FindObjectIdInDatabase searches for an ObjectId in all collections
+
 func (m *Manager) FindObjectIdInDatabase(searchID string, log LogFunc) ([]map[string]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
-	// Try to parse as ObjectId first
+
 	var searchOID primitive.ObjectID
 	var searchAsOID bool
 	if oid, err := primitive.ObjectIDFromHex(searchID); err == nil {
@@ -22,7 +22,7 @@ func (m *Manager) FindObjectIdInDatabase(searchID string, log LogFunc) ([]map[st
 		searchAsOID = true
 	}
 
-	// Get all collection names
+
 	collections, err := m.conn.Database.ListCollectionNames(ctx, bson.M{})
 	if err != nil {
 		return nil, fmt.Errorf("erro ao listar coleções: %w", err)
@@ -53,7 +53,7 @@ func (m *Manager) FindObjectIdInDatabase(searchID string, log LogFunc) ([]map[st
 				continue
 			}
 
-			// Search through document fields
+
 			matches := searchDocument(doc, searchID, searchOID, searchAsOID)
 			for _, field := range matches {
 				result := map[string]string{
@@ -70,7 +70,7 @@ func (m *Manager) FindObjectIdInDatabase(searchID string, log LogFunc) ([]map[st
 	return results, nil
 }
 
-// searchDocument recursively searches a document for a matching ObjectId or string
+
 func searchDocument(doc bson.M, searchStr string, searchOID primitive.ObjectID, searchAsOID bool) []string {
 	var matches []string
 
@@ -87,13 +87,13 @@ func searchDocument(doc bson.M, searchStr string, searchOID primitive.ObjectID, 
 				matches = append(matches, key)
 			}
 		case bson.M:
-			// Recurse into nested documents
+
 			nested := searchDocument(v, searchStr, searchOID, searchAsOID)
 			for _, n := range nested {
 				matches = append(matches, key+"."+n)
 			}
 		case bson.A:
-			// Handle arrays
+
 			for i, item := range v {
 				if m, ok := item.(bson.M); ok {
 					nested := searchDocument(m, searchStr, searchOID, searchAsOID)

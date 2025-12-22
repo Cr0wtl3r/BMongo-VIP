@@ -44,16 +44,16 @@ export function EmitentesListModal({ show, onClose, emitentesList, onDelete }: E
             disabled={!selectedEmitenteId}
             onClick={() => {
                 onDelete(selectedEmitenteId);
-                // onClose(); // Let parent handle closing if needed, or close here?
-                // Probably better to let parent confirm then close. 
-                // But typically UI pattern is: click delete -> confirmation modal appears -> success -> list closes.
-                // We'll simplisticly close this modal here if the confirm handles it?
-                // No, if user cancels confirm, this modal should stay open.
-                // But ConfirmModal is global in App.tsx. App.tsx logic usually closes active modals or handles success.
-                // We will keep this open until success? 
-                // Let's assume onConfirm will trigger success toast.
-                // We can close this modal immediately or let the user close it.
-                // Let's close it to avoid clutter, as the action is handed off to the global confirmation.
+
+
+
+
+
+
+
+
+
+
                 onClose();
             }}
           >

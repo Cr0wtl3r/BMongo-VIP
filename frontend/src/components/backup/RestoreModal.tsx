@@ -21,7 +21,7 @@ export function RestoreModal({ show, onClose, showSuccess, showError }: RestoreM
         <h3>📥 Restaurar Backup</h3>
         <p className="modal-desc">Recupere dados de um backup anterior. Escolha a fonte e opções.</p>
 
-        {/* Source Toggle using Standard Tabs */}
+        {}
         <div className="modal-tabs">
           <button 
             className={`tab ${sourceType === 'folder' ? 'active' : ''}`}
@@ -37,7 +37,7 @@ export function RestoreModal({ show, onClose, showSuccess, showError }: RestoreM
           </button>
         </div>
 
-        {/* Input Path */}
+        {}
         <div className="form-group">
           <label>Caminho de Origem:</label>
           <div className="file-picker-row">
@@ -58,7 +58,7 @@ export function RestoreModal({ show, onClose, showSuccess, showError }: RestoreM
           </div>
         </div>
 
-        {/* Options */}
+        {}
         <div className="form-group">
           <label className="checkbox-row">
             <input

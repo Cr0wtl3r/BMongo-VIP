@@ -4,7 +4,7 @@ import { GetTributations, GetFederalTributations, ChangeTributationByNCM, Change
 interface NcmModalProps {
   show: boolean;
   onClose: () => void;
-  // Allows parent to control initial scope if needed, but defaults inside
+
 }
 
 export function NcmModal({ show, onClose }: NcmModalProps) {

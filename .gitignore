@@ -1,5 +1,48 @@
+# Build artifacts
 build/bin
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Frontend
 node_modules
 frontend/dist
+frontend/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs and Tools
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+comment_cleaner.go
+encrypt_env.go
+.env.enc
+
+# OS specific
+Thumbs.db
+Thumbs.db:encryptable
+desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Environment
 .env
-_legacy_backup
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+
+# Large Backups
+_legacy_backup/

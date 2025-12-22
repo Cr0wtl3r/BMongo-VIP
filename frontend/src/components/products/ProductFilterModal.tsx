@@ -46,7 +46,7 @@ export function ProductFilterModal({ show, onClose, totalInDatabase }: ProductFi
         <h3>📦 Gerenciador Avançado de Produtos</h3>
         <p className="modal-subtitle">📊 Total na base: <strong>{totalInDatabase.toLocaleString()}</strong> produtos</p>
         
-        {/* Filter Form */}
+        {}
         <div className="filter-grid" onKeyDown={(e) => {
           if (e.key === 'Enter') handleFilter();
         }}>
@@ -110,7 +110,7 @@ export function ProductFilterModal({ show, onClose, totalInDatabase }: ProductFi
           )}
         </div>
 
-        {/* Results Table */}
+        {}
         {filterResults.length > 0 && (
           <div className="results-table-container">
             <table className="results-table">

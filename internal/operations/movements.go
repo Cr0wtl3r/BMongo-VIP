@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// CleanMovements removes card administrator images from movement records
+
 func (m *Manager) CleanMovements(log LogFunc) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
@@ -57,7 +57,7 @@ func (m *Manager) CleanMovements(log LogFunc) error {
 func (m *Manager) updateMovimentacoes(ctx context.Context, log LogFunc) error {
 	col := m.conn.GetCollection(database.CollectionMovimentacoes)
 
-	// Update for indices 0, 1, 2
+
 	for i := 0; i < 3; i++ {
 		if m.state.ShouldStop() {
 			return nil
@@ -75,7 +75,7 @@ func (m *Manager) updateMovimentacoes(ctx context.Context, log LogFunc) error {
 		}
 	}
 
-	// Update main Pessoa.Imagem
+
 	_, err := col.UpdateMany(ctx,
 		bson.M{"PagamentoRecebimento.Parcelas.0.Historico.0.EspeciePagamento.Descricao": bson.M{"$regex": ".*Cart.*", "$options": "i"}},
 		bson.M{"$unset": bson.M{"PagamentoRecebimento.Parcelas.0.Pessoa.Imagem": ""}},
@@ -87,7 +87,7 @@ func (m *Manager) updateMovimentacoes(ctx context.Context, log LogFunc) error {
 func (m *Manager) updateRecebimentos(ctx context.Context, log LogFunc) error {
 	col := m.conn.GetCollection(database.CollectionRecebimentos)
 
-	// Update for indices 0, 1, 2
+
 	for i := 0; i < 3; i++ {
 		if m.state.ShouldStop() {
 			return nil
@@ -105,7 +105,7 @@ func (m *Manager) updateRecebimentos(ctx context.Context, log LogFunc) error {
 		}
 	}
 
-	// Update main Pessoa.Imagem
+
 	_, err := col.UpdateMany(ctx,
 		bson.M{"Historico.0.EspeciePagamento.Descricao": bson.M{"$regex": ".*Cart.*", "$options": "i"}},
 		bson.M{"$unset": bson.M{"Pessoa.Imagem": ""}},

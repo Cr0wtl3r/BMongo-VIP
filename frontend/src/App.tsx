@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import './App.css';
-import { 
-  InactivateZeroProducts, 
-  CleanMovements, 
+import {
+  InactivateZeroProducts,
+  CleanMovements,
   EnableMEI,
   CheckConnection,
   GetLogs,
@@ -25,7 +25,6 @@ import {
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 
-// Components
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { LogPanel } from './components/common/LogPanel';
@@ -54,8 +53,8 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
-  
-  // Modals Visibility State
+
+
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showNcmModal, setShowNcmModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -68,25 +67,25 @@ function App() {
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showRollbackModal, setShowRollbackModal] = useState(false);
 
-  // Data State for Modals
+
   const [totalInDatabase, setTotalInDatabase] = useState(0);
   const [emitentesList, setEmitentesList] = useState<any[]>([]);
   const [availableInvoiceTypes, setAvailableInvoiceTypes] = useState<string[]>([]);
   const [availableInvoiceStatuses, setAvailableInvoiceStatuses] = useState<string[]>([]);
   const [undoableOps, setUndoableOps] = useState<any[]>([]);
 
-  // Confirmation State
+
   const [showConfirmModal, setShowConfirmModal] = useState<{show: boolean, title: string, desc: string, action: () => Promise<any>}>({
-      show: false, title: '', desc: '', action: async () => {} 
+      show: false, title: '', desc: '', action: async () => {}
   });
 
-  // Pinned quick access
+
   const [pinnedActions, setPinnedActions] = useState<string[]>(() => {
     const saved = localStorage.getItem('pinnedActions');
     return saved ? JSON.parse(saved) : ['gerenciador', 'inativar', 'tributacao', 'buscar_id'];
   });
 
-  // Toasts
+
   const [successToast, setSuccessToast] = useState<{show: boolean, message: string}>({show: false, message: ''});
   const [errorToast, setErrorToast] = useState<{show: boolean, message: string}>({show: false, message: ''});
 
@@ -105,7 +104,7 @@ function App() {
   useEffect(() => {
     if (subscribed.current) return;
     subscribed.current = true;
-    
+
     const handler = (message: string) => {
         setLogs(prev => [...prev, message]);
     };
@@ -123,7 +122,7 @@ function App() {
       const actionToRun = showConfirmModal.action;
       const actionTitle = showConfirmModal.title;
       setShowConfirmModal({...showConfirmModal, show: false});
-      
+
       if (actionToRun) {
           try {
               await actionToRun();
@@ -144,7 +143,7 @@ function App() {
     }
   };
 
-  // Main Action Handler
+
   const handleMenuAction = (itemId: string) => {
     switch(itemId) {
       case 'gerenciador':
@@ -181,7 +180,7 @@ function App() {
       case 'deu_merda':
         openRollbackModal();
         break;
-      // Estoque/Preços
+
       case 'zerar_estoque':
         confirmAction("⚠️ Zerar TODO Estoque", "Isso zera quantidade de TODOS os produtos! Tem certeza?", ZeroAllStock);
         break;
@@ -194,7 +193,7 @@ function App() {
       case 'limpar_por_data':
         setShowDateModal(true);
         break;
-      // Emitente
+
       case 'ajustar_emitente':
         setShowEmitenteModal(true);
         break;
@@ -204,7 +203,7 @@ function App() {
           setShowEmitentesListModal(true);
         }).catch(console.error);
         break;
-      // Notas Fiscais
+
       case 'alterar_chave':
         GetInvoiceTypes().then((types: any) => {
            setAvailableInvoiceTypes(types || []);
@@ -218,14 +217,14 @@ function App() {
             setShowInvoiceStatusModal(true);
         }).catch(console.error);
         break;
-      // Backup / Restore
+
       case 'backup':
         setShowBackupModal(true);
         break;
       case 'restore':
         setShowRestoreModal(true);
         break;
-      // Windows Services
+
       case 'stop_services':
         confirmAction("Parar Serviços Digisat", "Isso para todos os serviços Digisat do Windows.", StopDigisatServices);
         break;
@@ -259,14 +258,14 @@ function App() {
 
   return (
     <div className="app-container">
-      <Header 
-        connected={connected} 
-        menuOpen={menuOpen} 
-        setMenuOpen={setMenuOpen} 
+      <Header
+        connected={connected}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
       />
 
       <main className={`main-content ${menuOpen ? 'sidebar-open' : ''}`}>
-        {/* Quick Access */}
+        {}
         {pinnedActions.length > 0 && (
           <div className="quick-access">
             {getPinnedItems().map(item => (
@@ -277,14 +276,14 @@ function App() {
           </div>
         )}
 
-        <LogPanel 
-          logs={logs} 
-          setLogs={setLogs} 
-          onCancel={CancelOperation} 
+        <LogPanel
+          logs={logs}
+          setLogs={setLogs}
+          onCancel={CancelOperation}
         />
       </main>
 
-      <Sidebar 
+      <Sidebar
         menuOpen={menuOpen}
         expandedModule={expandedModule}
         toggleModule={toggleModule}
@@ -293,29 +292,29 @@ function App() {
         togglePin={togglePin}
       />
 
-      {/* --- MODALS --- */}
-      
-      <SearchModal 
-        show={showSearchModal} 
-        onClose={() => setShowSearchModal(false)} 
+      {}
+
+      <SearchModal
+        show={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
       />
 
-      <ProductFilterModal 
-        show={showFilterModal} 
-        onClose={() => setShowFilterModal(false)} 
+      <ProductFilterModal
+        show={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
         totalInDatabase={totalInDatabase}
       />
 
-      <NcmModal 
-        show={showNcmModal} 
-        onClose={() => setShowNcmModal(false)} 
+      <NcmModal
+        show={showNcmModal}
+        onClose={() => setShowNcmModal(false)}
       />
 
-      <DateModal 
-        show={showDateModal} 
+      <DateModal
+        show={showDateModal}
         onClose={() => setShowDateModal(false)}
         showSuccess={showSuccess}
-        showError={showError} 
+        showError={showError}
       />
 
       <EmitenteModal
@@ -331,8 +330,8 @@ function App() {
         emitentesList={emitentesList}
         onDelete={(id) => {
            confirmAction(
-             "⚠️ Excluir Emitente", 
-             "TEM CERTEZA? Essa ação apaga TUDO (Movimentações, Estoques, Financeiro etc) vinculado a este CNPJ e remove o info.dat do servidor se necessário. É irreversível!", 
+             "⚠️ Excluir Emitente",
+             "TEM CERTEZA? Essa ação apaga TUDO (Movimentações, Estoques, Financeiro etc) vinculado a este CNPJ e remove o info.dat do servidor se necessário. É irreversível!",
              async () => await DeleteEmitente(id)
            );
         }}
@@ -376,7 +375,7 @@ function App() {
         setUndoableOps={setUndoableOps}
       />
 
-      <ConfirmModal 
+      <ConfirmModal
         show={showConfirmModal.show}
         title={showConfirmModal.title}
         desc={showConfirmModal.desc}
@@ -384,17 +383,17 @@ function App() {
         onCancel={() => setShowConfirmModal({...showConfirmModal, show: false})}
       />
 
-      <Toast 
-        show={successToast.show} 
-        message={successToast.message} 
-        type="success" 
-        onClose={() => setSuccessToast({...successToast, show: false})} 
+      <Toast
+        show={successToast.show}
+        message={successToast.message}
+        type="success"
+        onClose={() => setSuccessToast({...successToast, show: false})}
       />
-      <Toast 
-        show={errorToast.show} 
-        message={errorToast.message} 
-        type="error" 
-        onClose={() => setErrorToast({...errorToast, show: false})} 
+      <Toast
+        show={errorToast.show}
+        message={errorToast.message}
+        type="error"
+        onClose={() => setErrorToast({...errorToast, show: false})}
       />
 
     </div>

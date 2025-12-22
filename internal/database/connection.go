@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Connection holds the MongoDB client and database reference
+
 type Connection struct {
 	Client   *mongo.Client
 	Database *mongo.Database
@@ -25,16 +25,16 @@ var (
 	once     sync.Once
 )
 
-// GetConnection returns the singleton database connection
+
 func GetConnection() *Connection {
 	return instance
 }
 
-// Connect creates a new MongoDB connection
+
 func Connect() (*Connection, error) {
 	var err error
 
-	// Load .env file
+
 	godotenv.Load()
 
 	once.Do(func() {
@@ -57,7 +57,7 @@ func Connect() (*Connection, error) {
 			return
 		}
 
-		// URL encode credentials
+
 		uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/?serverSelectionTimeoutMS=5000",
 			url.QueryEscape(user),
 			url.QueryEscape(pass),
@@ -76,7 +76,7 @@ func Connect() (*Connection, error) {
 			return
 		}
 
-		// Ping to verify connection
+
 		err = client.Ping(ctx, nil)
 		if err != nil {
 			err = fmt.Errorf("erro ao verificar conexão: %w", err)
@@ -92,7 +92,7 @@ func Connect() (*Connection, error) {
 	return instance, err
 }
 
-// Disconnect closes the MongoDB connection
+
 func (c *Connection) Disconnect() error {
 	if c.Client != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -102,7 +102,7 @@ func (c *Connection) Disconnect() error {
 	return nil
 }
 
-// IsConnected checks if the database connection is alive
+
 func (c *Connection) IsConnected() bool {
 	if c.Client == nil {
 		return false
@@ -112,12 +112,12 @@ func (c *Connection) IsConnected() bool {
 	return c.Client.Ping(ctx, nil) == nil
 }
 
-// GetCollection returns a reference to a collection
+
 func (c *Connection) GetCollection(name string) *mongo.Collection {
 	return c.Database.Collection(name)
 }
 
-// Collection names as constants
+
 const (
 	CollectionPessoas                 = "Pessoas"
 	CollectionProdutosServicos        = "ProdutosServicos"
@@ -133,7 +133,7 @@ const (
 	CollectionAbastecimentos          = "Abastecimentos"
 	CollectionConfiguracoes           = "Configuracoes"
 
-	// Additional collections for complete emitente deletion (from legacy)
+
 	CollectionAgendamentos                            = "Agendamentos"
 	CollectionAnunciosMercadoLivre                    = "AnunciosMercadoLivre"
 	CollectionArquivosDigisatContabil                 = "ArquivosDigisatContabil"
@@ -181,4 +181,9 @@ const (
 	CollectionRegistrosPafEcf                         = "RegistrosPafEcf"
 	CollectionArquivosSngpc                           = "ArquivosSngpc"
 	CollectionConhecimentosTransporteRodoviarioCargas = "ConhecimentosTransporteRodoviarioCargas"
+
+
+	CollectionSequenciasMovimentacoes = "SequenciasMovimentacoes"
+	CollectionUsuarios                = "Usuarios"
+	CollectionTokens                  = "Tokens"
 )

@@ -33,6 +33,10 @@ func Connect() (*Connection, error) {
 
 	godotenv.Load()
 
+	// Tenta carregar subindo um nível caso estejamos em build/bin
+	godotenv.Load("../.env")
+	godotenv.Load("../../.env")
+
 	once.Do(func() {
 		user := os.Getenv("DB_USER")
 		pass := os.Getenv("DB_PASS")

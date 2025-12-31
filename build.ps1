@@ -13,7 +13,7 @@ if (-not (Test-Path $envFile)) {
 
 $envContent = Get-Content $envFile -Raw
 
-$passwordHash = ($envContent | Select-String -Pattern "PASSWORD=(.*)").Matches.Groups[1].Value
+$passwordHash = ($envContent | Select-String -Pattern "PASSWORD=(.*)").Matches.Groups[1].Value.Trim()
 
 if ([string]::IsNullOrEmpty($passwordHash)) {
     Write-Error "Erro: PASSWORD (hash) não encontrada no arquivo .env ou a linha está vazia."
@@ -27,14 +27,60 @@ if ([string]::IsNullOrEmpty($passwordHash)) {
 }
 
 Write-Host "✅ Hash da senha encontrado no .env" -ForegroundColor Green
-Write-Host "Iniciando build do Wails com hash da senha injetado..." -ForegroundColor Cyan
+Write-Host "Iniciando build do Wails..." -ForegroundColor Cyan
 
-& wails build "-ldflags=-X main.compiledPasswordHash=$passwordHash"
+# Ler todo o conteúdo do .env para embutir no executável (fallback)
+$envLines = Get-Content $envFile
+$envMapEntries = ""
+foreach ($line in $envLines) {
+    $line = $line.Trim()
+    if ($line -ne "" -and -not $line.StartsWith("#")) {
+        $parts = $line.Split("=", 2)
+        if ($parts.Length -eq 2) {
+            $key = $parts[0].Trim()
+            $val = $parts[1].Trim()
+            
+            # Remover aspas duplas envolventes se houver (comportamento padrão de .env)
+            if ($val.StartsWith('"') -and $val.EndsWith('"')) {
+                $val = $val.Substring(1, $val.Length - 2)
+            }
+            
+            # Escapar aspas duplas internas se houver
+            $val = $val -replace '"', '\"'
+            $envMapEntries += "`"$key`": `"$val`",`n`t`t"
+        }
+    }
+}
+
+# Estratégia Robusta: Gerar arquivo temporário Go com o hash E as variáveis de ambiente
+$secretsFile = "secrets_gen.go"
+$secretsContent = @"
+package main
+
+func init() {
+	compiledPasswordHash = "$passwordHash"
+	
+	compiledEnv = map[string]string{
+		$envMapEntries
+	}
+}
+"@
+Set-Content -Path $secretsFile -Value $secretsContent -Encoding UTF8
+
+try {
+    & wails build
+}
+finally {
+    if (Test-Path $secretsFile) {
+        Remove-Item $secretsFile
+    }
+}
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "✅ Build concluído com sucesso!" -ForegroundColor Green
     Write-Host "📦 Executável gerado em: .\build\bin\BMongo-VIP.exe" -ForegroundColor Yellow
-} else {
+}
+else {
     Write-Error "❌ Erro durante o build do Wails. Código de saída: $LASTEXITCODE"
 }

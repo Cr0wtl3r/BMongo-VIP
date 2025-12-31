@@ -44,6 +44,7 @@ func NewApp() *App {
 			log.Println("ERRO: PASSWORD (hash) não definido no .env ou como variável de ambiente. O login falhará.")
 		}
 	}
+
 	return &App{
 		logs:          make([]string, 0),
 		senhaHasheada: hashSenha,

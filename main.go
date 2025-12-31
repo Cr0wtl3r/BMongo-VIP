@@ -12,15 +12,23 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 )
 
-
+//go:embed all:frontend/dist
 var assets embed.FS
 
 var compiledPasswordHash string
+var compiledEnv map[string]string // Mapa para injetar .env via secrets_gen.go
 
 var envEncContent string
 
 func main() {
 	godotenv.Load()
+
+	// Injeção direta via build.ps1 (secrets_gen.go)
+	for key, value := range compiledEnv {
+		if os.Getenv(key) == "" {
+			os.Setenv(key, value)
+		}
+	}
 
 	if envEncContent != "" {
 		decrypted, err := crypto.Decrypt(envEncContent, crypto.Key)

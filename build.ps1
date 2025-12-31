@@ -29,7 +29,6 @@ if ([string]::IsNullOrEmpty($passwordHash)) {
 Write-Host "✅ Hash da senha encontrado no .env" -ForegroundColor Green
 Write-Host "Iniciando build do Wails..." -ForegroundColor Cyan
 
-# Ler todo o conteúdo do .env para embutir no executável (fallback)
 $envLines = Get-Content $envFile
 $envMapEntries = ""
 foreach ($line in $envLines) {
@@ -40,19 +39,16 @@ foreach ($line in $envLines) {
             $key = $parts[0].Trim()
             $val = $parts[1].Trim()
             
-            # Remover aspas duplas envolventes se houver (comportamento padrão de .env)
             if ($val.StartsWith('"') -and $val.EndsWith('"')) {
                 $val = $val.Substring(1, $val.Length - 2)
             }
             
-            # Escapar aspas duplas internas se houver
             $val = $val -replace '"', '\"'
             $envMapEntries += "`"$key`": `"$val`",`n`t`t"
         }
     }
 }
 
-# Estratégia Robusta: Gerar arquivo temporário Go com o hash E as variáveis de ambiente
 $secretsFile = "secrets_gen.go"
 $secretsContent = @"
 package main

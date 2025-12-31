@@ -1,5 +1,5 @@
 import { useState, Dispatch, SetStateAction } from 'react';
-import { FilterProducts } from '../../../wailsjs/go/main/App';
+import { FilterProducts, BulkActivateProducts } from '../../../wailsjs/go/main/App';
 
 interface ProductFilterModalProps {
   show: boolean;
@@ -10,6 +10,7 @@ interface ProductFilterModalProps {
 export function ProductFilterModal({ show, onClose, totalInDatabase }: ProductFilterModalProps) {
   const [filterResults, setFilterResults] = useState<any[]>([]);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [productFilter, setProductFilter] = useState({
     quantityOp: '', quantityValue: 0,
     brand: '', ncms: '',
@@ -18,6 +19,34 @@ export function ProductFilterModal({ show, onClose, totalInDatabase }: ProductFi
     costPriceOp: '', costPriceVal: 0,
     salePriceOp: '', salePriceVal: 0
   });
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filterResults.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filterResults.map(p => p.id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(sid => sid !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleBulkActivate = async (activate: boolean) => {
+    if (selectedIds.length === 0) return;
+    try {
+      await BulkActivateProducts(selectedIds, activate);
+      // Refresh results
+      handleFilter();
+      setSelectedIds([]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleFilter = async () => {
     const filter: any = {};
@@ -113,9 +142,35 @@ export function ProductFilterModal({ show, onClose, totalInDatabase }: ProductFi
         {}
         {filterResults.length > 0 && (
           <div className="results-table-container">
+            {selectedIds.length > 0 && (
+              <div className="bulk-actions" style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '6px' }}>
+                <span style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>{selectedIds.length} selecionados</span>
+                <button 
+                  onClick={() => handleBulkActivate(true)}
+                  style={{ padding: '4px 12px', borderRadius: '4px', border: 'none', background: '#22c55e', color: 'white', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  ✅ Ativar
+                </button>
+                <button 
+                  onClick={() => handleBulkActivate(false)}
+                  style={{ padding: '4px 12px', borderRadius: '4px', border: 'none', background: '#ef4444', color: 'white', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  ❌ Inativar
+                </button>
+              </div>
+            )}
+            
             <table className="results-table">
               <thead>
                 <tr>
+                   <th style={{ width: '40px', textAlign: 'center' }}>
+                     <input 
+                       type="checkbox" 
+                       checked={filterResults.length > 0 && selectedIds.length === filterResults.length}
+                       onChange={toggleSelectAll}
+                       style={{ cursor: 'pointer' }}
+                     />
+                   </th>
                    <th>Descrição</th>
                    <th>Marca</th>
                    <th>NCM</th>
@@ -125,7 +180,15 @@ export function ProductFilterModal({ show, onClose, totalInDatabase }: ProductFi
               </thead>
               <tbody>
                 {filterResults.map((p, idx) => (
-                    <tr key={idx}>
+                    <tr key={idx} className={selectedIds.includes(p.id) ? 'selected-row' : ''} style={selectedIds.includes(p.id) ? { background: 'rgba(246, 136, 45, 0.1)' } : {}}>
+                        <td style={{ textAlign: 'center' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedIds.includes(p.id)}
+                            onChange={() => toggleSelect(p.id)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </td>
                         <td>{p.name}</td>
                         <td>{p.brand}</td>
                         <td>{p.ncm}</td>

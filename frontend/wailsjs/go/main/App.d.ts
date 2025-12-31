@@ -75,7 +75,11 @@ export function ListBackups(arg1:string):Promise<Array<operations.BackupResult>>
 
 export function ListEmitentes():Promise<Array<Record<string, any>>>;
 
+export function Login(arg1:string):Promise<boolean>;
+
 export function RestoreDatabase(arg1:string,arg2:boolean):Promise<void>;
+
+export function RetryConnection():Promise<void>;
 
 export function SelectBackupFile(arg1:string):Promise<string>;
 

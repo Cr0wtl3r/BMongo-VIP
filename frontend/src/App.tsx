@@ -5,6 +5,7 @@ import {
   CleanMovements,
   EnableMEI,
   CheckConnection,
+  RetryConnection,
   GetLogs,
   CancelOperation,
   CleanDatabase,
@@ -46,9 +47,12 @@ import { RestoreModal } from './components/backup/RestoreModal';
 import { EmitenteModal } from './components/emitente/EmitenteModal';
 import { EmitentesListModal } from './components/emitente/EmitentesListModal';
 
+import { Login } from './components/Login';
+
 import { modules } from './config/modules';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [connected, setConnected] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -256,12 +260,31 @@ function App() {
     return pinnedActions.map(id => allItems.find(item => item.id === id)).filter(Boolean) as typeof modules[0]['items'];
   };
 
+  const handleRetryConnection = async () => {
+    try {
+      await RetryConnection();
+      const isConnected = await CheckConnection();
+      setConnected(isConnected);
+      if (isConnected) {
+        showSuccess('✅ Reconectado ao banco com sucesso!');
+      }
+    } catch (err) {
+      showError('❌ Falha ao reconectar ao banco de dados');
+      console.error(err);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <div className="app-container">
       <Header
         connected={connected}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
+        onRetryConnection={handleRetryConnection}
       />
 
       <main className={`main-content ${menuOpen ? 'sidebar-open' : ''}`}>

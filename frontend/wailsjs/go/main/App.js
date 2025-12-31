@@ -146,8 +146,16 @@ export function ListEmitentes() {
   return window['go']['main']['App']['ListEmitentes']();
 }
 
+export function Login(arg1) {
+  return window['go']['main']['App']['Login'](arg1);
+}
+
 export function RestoreDatabase(arg1, arg2) {
   return window['go']['main']['App']['RestoreDatabase'](arg1, arg2);
+}
+
+export function RetryConnection() {
+  return window['go']['main']['App']['RetryConnection']();
 }
 
 export function SelectBackupFile(arg1) {

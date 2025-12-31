@@ -2,26 +2,51 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"log"
+	"os"
 
 	"BMongo-VIP/internal/database"
 	"BMongo-VIP/internal/operations"
 	"BMongo-VIP/internal/windows"
 
+	"github.com/joho/godotenv"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
-	ctx        context.Context
-	db         *database.Connection
-	operations *operations.Manager
-	rollback   *operations.RollbackManager
-	logs       []string
+	ctx           context.Context
+	db            *database.Connection
+	operations    *operations.Manager
+	rollback      *operations.RollbackManager
+	logs          []string
+	senhaHasheada string
+}
+
+func init() {
+	if compiledPasswordHash == "" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Println("Aviso: .env não carregado ou não encontrado. Tentando usar variáveis de ambiente ou senha compilada.")
+		}
+	}
 }
 
 func NewApp() *App {
+	var hashSenha string
+	if compiledPasswordHash != "" {
+		hashSenha = compiledPasswordHash
+	} else {
+		hashSenha = os.Getenv("PASSWORD")
+		if hashSenha == "" {
+			log.Println("ERRO: PASSWORD (hash) não definido no .env ou como variável de ambiente. O login falhará.")
+		}
+	}
 	return &App{
-		logs: make([]string, 0),
+		logs:          make([]string, 0),
+		senhaHasheada: hashSenha,
 	}
 }
 
@@ -58,6 +83,13 @@ func (a *App) shutdown(ctx context.Context) {
 	}
 }
 
+func (a *App) Login(senha string) bool {
+	hasher := sha256.New()
+	hasher.Write([]byte(senha))
+	hashSenhaDigitada := hex.EncodeToString(hasher.Sum(nil))
+	return hashSenhaDigitada == a.senhaHasheada
+}
+
 func (a *App) addLog(message string) {
 	a.logs = append(a.logs, message)
 	if a.ctx != nil {
@@ -78,6 +110,39 @@ func (a *App) CheckConnection() bool {
 		return false
 	}
 	return a.db.IsConnected()
+}
+
+func (a *App) RetryConnection() error {
+	a.addLog("🔄 Tentando reconectar ao banco de dados...")
+
+	conn, err := database.Connect()
+	if err != nil {
+		a.addLog(fmt.Sprintf("❌ Falha na reconexão: %s", err.Error()))
+		return err
+	}
+
+	if a.db != nil {
+		a.db.Disconnect()
+	}
+
+	a.db = conn
+	a.operations = operations.NewManager(conn)
+	a.rollback = operations.NewRollbackManager(conn)
+
+	validator := database.NewValidator(conn)
+	ok, msg := validator.ValidateConnection()
+	if ok {
+		a.addLog(fmt.Sprintf("✅ %s", msg))
+
+		empty, _ := validator.IsDatabaseEmpty()
+		if empty {
+			a.addLog("⚠️ O banco de dados está vazio. Por favor, restaure uma base.")
+		}
+		return nil
+	}
+
+	a.addLog(fmt.Sprintf("❌ %s", msg))
+	return fmt.Errorf(msg)
 }
 
 func (a *App) InactivateZeroProducts() (int, error) {

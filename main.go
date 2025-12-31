@@ -15,6 +15,7 @@ import (
 
 var assets embed.FS
 
+var compiledPasswordHash string
 
 var envEncContent string
 

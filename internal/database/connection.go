@@ -14,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-
 type Connection struct {
 	Client   *mongo.Client
 	Database *mongo.Database
@@ -25,15 +24,12 @@ var (
 	once     sync.Once
 )
 
-
 func GetConnection() *Connection {
 	return instance
 }
 
-
 func Connect() (*Connection, error) {
 	var err error
-
 
 	godotenv.Load()
 
@@ -57,7 +53,6 @@ func Connect() (*Connection, error) {
 			return
 		}
 
-
 		uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/?serverSelectionTimeoutMS=5000",
 			url.QueryEscape(user),
 			url.QueryEscape(pass),
@@ -76,7 +71,6 @@ func Connect() (*Connection, error) {
 			return
 		}
 
-
 		err = client.Ping(ctx, nil)
 		if err != nil {
 			err = fmt.Errorf("erro ao verificar conexão: %w", err)
@@ -92,7 +86,6 @@ func Connect() (*Connection, error) {
 	return instance, err
 }
 
-
 func (c *Connection) Disconnect() error {
 	if c.Client != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -101,7 +94,6 @@ func (c *Connection) Disconnect() error {
 	}
 	return nil
 }
-
 
 func (c *Connection) IsConnected() bool {
 	if c.Client == nil {
@@ -112,11 +104,9 @@ func (c *Connection) IsConnected() bool {
 	return c.Client.Ping(ctx, nil) == nil
 }
 
-
 func (c *Connection) GetCollection(name string) *mongo.Collection {
 	return c.Database.Collection(name)
 }
-
 
 const (
 	CollectionPessoas                 = "Pessoas"
@@ -129,10 +119,10 @@ const (
 	CollectionTurnosLancamentos       = "TurnosLancamentos"
 	CollectionConfiguracoesServidor   = "ConfiguracoesServidor"
 	CollectionTributacoesFederal      = "TributacoesFederal"
+	CollectionTributacoesIbsCbs       = "TributacoesIbsCbs"
 	CollectionPagamentos              = "Pagamentos"
 	CollectionAbastecimentos          = "Abastecimentos"
 	CollectionConfiguracoes           = "Configuracoes"
-
 
 	CollectionAgendamentos                            = "Agendamentos"
 	CollectionAnunciosMercadoLivre                    = "AnunciosMercadoLivre"
@@ -181,7 +171,6 @@ const (
 	CollectionRegistrosPafEcf                         = "RegistrosPafEcf"
 	CollectionArquivosSngpc                           = "ArquivosSngpc"
 	CollectionConhecimentosTransporteRodoviarioCargas = "ConhecimentosTransporteRodoviarioCargas"
-
 
 	CollectionSequenciasMovimentacoes = "SequenciasMovimentacoes"
 	CollectionUsuarios                = "Usuarios"

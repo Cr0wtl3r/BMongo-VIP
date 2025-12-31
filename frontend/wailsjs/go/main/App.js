@@ -22,6 +22,10 @@ export function ChangeFederalTributationByNCM(arg1, arg2) {
   return window['go']['main']['App']['ChangeFederalTributationByNCM'](arg1, arg2);
 }
 
+export function ChangeIbsCbsTributationByNCM(arg1, arg2) {
+  return window['go']['main']['App']['ChangeIbsCbsTributationByNCM'](arg1, arg2);
+}
+
 export function ChangeInvoiceKey(arg1, arg2, arg3) {
   return window['go']['main']['App']['ChangeInvoiceKey'](arg1, arg2, arg3);
 }
@@ -88,6 +92,10 @@ export function GetDigisatServices() {
 
 export function GetFederalTributations() {
   return window['go']['main']['App']['GetFederalTributations']();
+}
+
+export function GetIbsCbsTributations() {
+  return window['go']['main']['App']['GetIbsCbsTributations']();
 }
 
 export function GetInvoiceByKey(arg1, arg2) {

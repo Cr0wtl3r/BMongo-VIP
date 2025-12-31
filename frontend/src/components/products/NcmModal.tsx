@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GetTributations, GetFederalTributations, ChangeTributationByNCM, ChangeFederalTributationByNCM } from '../../../wailsjs/go/main/App';
+import { GetTributations, GetFederalTributations, GetIbsCbsTributations, ChangeTributationByNCM, ChangeFederalTributationByNCM, ChangeIbsCbsTributationByNCM } from '../../../wailsjs/go/main/App';
 
 interface NcmModalProps {
   show: boolean;
@@ -11,15 +11,20 @@ export function NcmModal({ show, onClose }: NcmModalProps) {
   const [ncmInput, setNcmInput] = useState('');
   const [selectedTrib, setSelectedTrib] = useState('');
   const [tributations, setTributations] = useState<Record<string, any>[]>([]);
-  const [ncmScope, setNcmScope] = useState<'estadual' | 'federal'>('estadual');
+  const [ncmScope, setNcmScope] = useState<'estadual' | 'federal' | 'ibscbs'>('estadual');
 
   useEffect(() => {
     if (!show) return;
     const fetchTribs = async () => {
         try {
-            const tribs = ncmScope === 'estadual' 
-              ? await GetTributations() 
-              : await GetFederalTributations();
+            let tribs;
+            if (ncmScope === 'estadual') {
+              tribs = await GetTributations();
+            } else if (ncmScope === 'federal') {
+              tribs = await GetFederalTributations();
+            } else {
+              tribs = await GetIbsCbsTributations();
+            }
             setTributations(tribs || []);
             setSelectedTrib('');
         } catch(err) {
@@ -31,14 +36,16 @@ export function NcmModal({ show, onClose }: NcmModalProps) {
 
   const handleChangeTributation = async () => {
     if (!ncmInput.trim() || !selectedTrib) return;
-    const ncms = ncmInput.split(',').map((n: string) => n.trim()).filter((n: string) => n);
+    const ncms = ncmInput.split(/[,;]/).map((n: string) => n.trim()).filter((n: string) => n);
     onClose();
     
     try {
       if (ncmScope === 'estadual') {
           await ChangeTributationByNCM(ncms, selectedTrib);
-      } else {
+      } else if (ncmScope === 'federal') {
           await ChangeFederalTributationByNCM(ncms, selectedTrib);
+      } else {
+          await ChangeIbsCbsTributationByNCM(ncms, selectedTrib);
       }
       setNcmInput('');
       setSelectedTrib('');
@@ -67,14 +74,20 @@ export function NcmModal({ show, onClose }: NcmModalProps) {
           >
             Federal (PIS/COFINS)
           </button>
+          <button 
+            className={`tab ${ncmScope === 'ibscbs' ? 'active' : ''}`}
+            onClick={() => setNcmScope('ibscbs')}
+          >
+            IBS/CBS
+          </button>
         </div>
 
         <div className="form-group">
-          <label>NCMs (separados por vírgula):</label>
+          <label>NCMs (separados por vírgula ou ponto e vírgula):</label>
           <textarea
             value={ncmInput}
             onChange={(e) => setNcmInput(e.target.value)}
-            placeholder="Ex: 8471, 8473, 9504"
+            placeholder="Ex: 8471, 8473; 9504 ou 8471*; 8473*"
             rows={3}
           />
         </div>

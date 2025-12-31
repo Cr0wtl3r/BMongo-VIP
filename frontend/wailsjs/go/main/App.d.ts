@@ -13,6 +13,8 @@ export function CancelOperation():Promise<void>;
 
 export function ChangeFederalTributationByNCM(arg1:Array<string>,arg2:string):Promise<number>;
 
+export function ChangeIbsCbsTributationByNCM(arg1:Array<string>,arg2:string):Promise<number>;
+
 export function ChangeInvoiceKey(arg1:string,arg2:string,arg3:string):Promise<number>;
 
 export function ChangeInvoiceStatus(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
@@ -46,6 +48,8 @@ export function GetDigisatProcesses():Promise<Array<windows.DigiProcess>>;
 export function GetDigisatServices():Promise<Array<windows.DigiService>>;
 
 export function GetFederalTributations():Promise<Array<Record<string, any>>>;
+
+export function GetIbsCbsTributations():Promise<Array<Record<string, any>>>;
 
 export function GetInvoiceByKey(arg1:string,arg2:string):Promise<operations.InvoiceDetails>;
 

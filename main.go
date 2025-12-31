@@ -12,10 +12,10 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 )
 
-//go:embed all:frontend/dist
+
 var assets embed.FS
 
-//go:embed .env.enc
+
 var envEncContent string
 
 func main() {

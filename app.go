@@ -28,7 +28,6 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
-
 	conn, err := database.Connect()
 	if err != nil {
 		a.addLog(fmt.Sprintf("⚠️ Erro: %s", err.Error()))
@@ -39,12 +38,10 @@ func (a *App) startup(ctx context.Context) {
 	a.operations = operations.NewManager(conn)
 	a.rollback = operations.NewRollbackManager(conn)
 
-
 	validator := database.NewValidator(conn)
 	ok, msg := validator.ValidateConnection()
 	if ok {
 		a.addLog(fmt.Sprintf("✅ %s", msg))
-
 
 		empty, _ := validator.IsDatabaseEmpty()
 		if empty {
@@ -157,6 +154,35 @@ func (a *App) GetTributations() ([]map[string]interface{}, error) {
 		return nil, fmt.Errorf("operações não inicializadas")
 	}
 	return a.operations.GetTributations()
+}
+
+func (a *App) GetIbsCbsTributations() []map[string]interface{} {
+	if a.operations == nil {
+		return []map[string]interface{}{}
+	}
+	res, err := a.operations.GetIbsCbsTributations()
+	if err != nil {
+		a.addLog(fmt.Sprintf("Erro ao buscar tributações IBS/CBS: %s", err.Error()))
+		return []map[string]interface{}{}
+	}
+	return res
+}
+
+func (a *App) ChangeIbsCbsTributationByNCM(ncms []string, tribID string) int {
+	if a.operations == nil {
+		return 0
+	}
+
+	a.addLog(fmt.Sprintf("🔄 Iniciando alteração de Tributação IBS/CBS para NCMs: %v", ncms))
+	err := a.operations.ChangeIbsCbsTributationByNCM(ncms, tribID, func(msg string) {
+		a.addLog(msg)
+	})
+
+	if err != nil {
+		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		return 0
+	}
+	return 1
 }
 
 func (a *App) EnableMEI() (int, error) {
@@ -326,7 +352,6 @@ func (a *App) FilterProducts(filter map[string]interface{}) (map[string]interfac
 		return nil, fmt.Errorf("operações não inicializadas")
 	}
 
-
 	pf := operations.ProductFilter{
 		QuantityOp:    getStringOrEmpty(filter, "quantityOp"),
 		QuantityValue: getFloatOrZero(filter, "quantityValue"),
@@ -340,7 +365,6 @@ func (a *App) FilterProducts(filter map[string]interface{}) (map[string]interfac
 		SalePriceVal:  getFloatOrZero(filter, "salePriceVal"),
 	}
 
-
 	if ncmsRaw, ok := filter["ncms"].([]interface{}); ok {
 		ncms := make([]string, len(ncmsRaw))
 		for i, n := range ncmsRaw {
@@ -348,7 +372,6 @@ func (a *App) FilterProducts(filter map[string]interface{}) (map[string]interfac
 		}
 		pf.NCMs = ncms
 	}
-
 
 	if v, ok := filter["weighable"].(bool); ok {
 		pf.Weighable = &v
@@ -363,7 +386,6 @@ func (a *App) FilterProducts(filter map[string]interface{}) (map[string]interfac
 	if err != nil {
 		return nil, err
 	}
-
 
 	products := make([]map[string]interface{}, len(results.Products))
 	for i, r := range results.Products {
@@ -380,7 +402,6 @@ func (a *App) FilterProducts(filter map[string]interface{}) (map[string]interfac
 			"itemType":  r.ItemType,
 		}
 	}
-
 
 	return map[string]interface{}{
 		"products": products,
@@ -530,7 +551,6 @@ func (a *App) ListEmitentes() ([]map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-
 
 	result := make([]map[string]interface{}, len(emitentes))
 	for i, e := range emitentes {

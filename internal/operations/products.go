@@ -13,7 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-
 func (m *Manager) InactivateZeroProducts(log LogFunc) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -21,7 +20,6 @@ func (m *Manager) InactivateZeroProducts(log LogFunc) (int, error) {
 	estoques := m.conn.GetCollection(database.CollectionEstoques)
 	produtosServicos := m.conn.GetCollection(database.CollectionProdutosServicos)
 	produtosEmpresa := m.conn.GetCollection(database.CollectionProdutosServicosEmpresa)
-
 
 	filter := bson.M{
 		"$or": []bson.M{
@@ -53,7 +51,6 @@ func (m *Manager) InactivateZeroProducts(log LogFunc) (int, error) {
 			continue
 		}
 
-
 		var produtoEmpresa bson.M
 		err := produtosEmpresa.FindOne(ctx, bson.M{"EstoqueReferencia": estoqueID}).Decode(&produtoEmpresa)
 		if err != nil {
@@ -64,7 +61,6 @@ func (m *Manager) InactivateZeroProducts(log LogFunc) (int, error) {
 		if !ok {
 			continue
 		}
-
 
 		result, err := produtosServicos.UpdateOne(ctx,
 			bson.M{"_id": produtoRef},
@@ -84,17 +80,14 @@ func (m *Manager) InactivateZeroProducts(log LogFunc) (int, error) {
 	return count, nil
 }
 
-
 func (m *Manager) ChangeTributationByNCM(ncms []string, tributationID string, log LogFunc) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-
 
 	tribID, err := primitive.ObjectIDFromHex(tributationID)
 	if err != nil {
 		return 0, fmt.Errorf("ID de tributação inválido: %w", err)
 	}
-
 
 	tributacoes := m.conn.GetCollection(database.CollectionTributacoesEstadual)
 	count64, err := tributacoes.CountDocuments(ctx, bson.M{"_id": tribID})
@@ -111,11 +104,10 @@ func (m *Manager) ChangeTributationByNCM(ncms []string, tributationID string, lo
 			return totalUpdates, nil
 		}
 
-		ncm = trimSpace(ncm)
+		ncm = cleanNCM(ncm)
 		if ncm == "" {
 			continue
 		}
-
 
 		result, err := produtosEmpresa.UpdateMany(ctx,
 			bson.M{"NcmNbs.Codigo": bson.M{"$regex": fmt.Sprintf("^%s.*", ncm), "$options": "i"}},
@@ -136,7 +128,6 @@ func (m *Manager) ChangeTributationByNCM(ncms []string, tributationID string, lo
 
 	return totalUpdates, nil
 }
-
 
 func (m *Manager) GetTributations() ([]map[string]interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -175,7 +166,6 @@ func (m *Manager) GetTributations() ([]map[string]interface{}, error) {
 
 	return results, nil
 }
-
 
 func (m *Manager) EnableMEI(log LogFunc) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -216,13 +206,19 @@ func trimSpace(s string) string {
 	return s[start:end]
 }
 
+func cleanNCM(ncm string) string {
+	ncm = trimSpace(ncm)
+	if strings.HasSuffix(ncm, "*") {
+		ncm = strings.TrimSuffix(ncm, "*")
+	}
+	return ncm
+}
 
 func (m *Manager) GetFederalTributations() ([]map[string]interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
 	collection := m.conn.GetCollection(database.CollectionTributacoesFederal)
-
 
 	opts := options.Find().SetProjection(bson.M{
 		"_id":       1,
@@ -240,7 +236,6 @@ func (m *Manager) GetFederalTributations() ([]map[string]interface{}, error) {
 		return nil, fmt.Errorf("erro ao decodificar tributações: %w", err)
 	}
 
-
 	for i, doc := range results {
 		if oid, ok := doc["_id"].(primitive.ObjectID); ok {
 			results[i]["id"] = oid.Hex()
@@ -249,7 +244,6 @@ func (m *Manager) GetFederalTributations() ([]map[string]interface{}, error) {
 
 	return results, nil
 }
-
 
 func (m *Manager) ChangeFederalTributationByNCM(ncms []string, tributationID string, log LogFunc) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -264,7 +258,6 @@ func (m *Manager) ChangeFederalTributationByNCM(ncms []string, tributationID str
 		return fmt.Errorf("ID da tributação inválido")
 	}
 
-
 	tributacoesFederal := m.conn.GetCollection(database.CollectionTributacoesFederal)
 	var tributacaoObj bson.M
 	err = tributacoesFederal.FindOne(ctx, bson.M{"_id": tribOID}).Decode(&tributacaoObj)
@@ -274,8 +267,15 @@ func (m *Manager) ChangeFederalTributationByNCM(ncms []string, tributationID str
 
 	produtosEmpresa := m.conn.GetCollection(database.CollectionProdutosServicosEmpresa)
 
+	cleanedNCMs := make([]string, 0, len(ncms))
+	for _, ncm := range ncms {
+		cleaned := cleanNCM(ncm)
+		if cleaned != "" {
+			cleanedNCMs = append(cleanedNCMs, cleaned)
+		}
+	}
 
-	pattern := "^(" + strings.Join(ncms, "|") + ")"
+	pattern := "^(" + strings.Join(cleanedNCMs, "|") + ")"
 	filter := bson.M{
 		"NcmNbs.Codigo": bson.M{
 			"$regex": primitive.Regex{Pattern: pattern, Options: ""},
@@ -286,6 +286,91 @@ func (m *Manager) ChangeFederalTributationByNCM(ncms []string, tributationID str
 		"$set": bson.M{
 			"TributacaoFederal":           tributacaoObj,
 			"TributacaoFederalReferencia": tribOID,
+		},
+	}
+
+	log(fmt.Sprintf("Atualizando produtos com NCMs: %s", strings.Join(ncms, ", ")))
+
+	result, err := produtosEmpresa.UpdateMany(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("erro ao atualizar produtos: %w", err)
+	}
+
+	log(fmt.Sprintf("Sucesso! %d produtos atualizados.", result.ModifiedCount))
+	return nil
+}
+
+func (m *Manager) GetIbsCbsTributations() ([]map[string]interface{}, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	collection := m.conn.GetCollection(database.CollectionTributacoesIbsCbs)
+
+	opts := options.Find().SetProjection(bson.M{
+		"_id":       1,
+		"Descricao": 1,
+	})
+
+	cursor, err := collection.Find(ctx, bson.M{}, opts)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar tributações IBS/CBS: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var results []map[string]interface{}
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("erro ao decodificar tributações: %w", err)
+	}
+
+	for i, doc := range results {
+		if oid, ok := doc["_id"].(primitive.ObjectID); ok {
+			results[i]["id"] = oid.Hex()
+		}
+	}
+
+	return results, nil
+}
+
+func (m *Manager) ChangeIbsCbsTributationByNCM(ncms []string, tributationID string, log LogFunc) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	if len(ncms) == 0 {
+		return fmt.Errorf("nenhum NCM informado")
+	}
+
+	tribOID, err := primitive.ObjectIDFromHex(tributationID)
+	if err != nil {
+		return fmt.Errorf("ID da tributação inválido")
+	}
+
+	tributacoesIbsCbs := m.conn.GetCollection(database.CollectionTributacoesIbsCbs)
+	var tributacaoObj bson.M
+	err = tributacoesIbsCbs.FindOne(ctx, bson.M{"_id": tribOID}).Decode(&tributacaoObj)
+	if err != nil {
+		return fmt.Errorf("erro ao buscar tributação IBS/CBS: %w", err)
+	}
+
+	produtosEmpresa := m.conn.GetCollection(database.CollectionProdutosServicosEmpresa)
+
+	cleanedNCMs := make([]string, 0, len(ncms))
+	for _, ncm := range ncms {
+		cleaned := cleanNCM(ncm)
+		if cleaned != "" {
+			cleanedNCMs = append(cleanedNCMs, cleaned)
+		}
+	}
+
+	pattern := "^(" + strings.Join(cleanedNCMs, "|") + ")"
+	filter := bson.M{
+		"NcmNbs.Codigo": bson.M{
+			"$regex": primitive.Regex{Pattern: pattern, Options: ""},
+		},
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"TributacaoIbsCbsReferencia": tribOID,
 		},
 	}
 

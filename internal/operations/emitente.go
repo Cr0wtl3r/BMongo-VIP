@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-
 type EmitenteInfo struct {
 	Cnpj                string `xml:"Cnpj"`
 	RazaoSocial         string `xml:"RazaoSocial"`
@@ -34,12 +33,10 @@ type EmitenteInfo struct {
 	CodigoIbgeMunicipio string `xml:"CodigoIbgeMunicipio"`
 }
 
-
 type InfoDatRoot struct {
 	XMLName  xml.Name     `xml:"Emitente"`
 	Emitente EmitenteInfo `xml:",any"`
 }
-
 
 type MunicipioInfo struct {
 	Nome       string
@@ -47,20 +44,17 @@ type MunicipioInfo struct {
 	UF         UFInfo
 }
 
-
 type UFInfo struct {
 	Sigla      string
 	Nome       string
 	CodigoIbge int
 }
 
-
 type EmitenteBasic struct {
 	ID   string `json:"id"`
 	Nome string `json:"nome"`
 	Cnpj string `json:"cnpj"`
 }
-
 
 func ParseInfoDat(filePath string) (*EmitenteInfo, error) {
 	file, err := os.Open(filePath)
@@ -76,23 +70,16 @@ func ParseInfoDat(filePath string) (*EmitenteInfo, error) {
 
 	info := &EmitenteInfo{}
 
-
-
 	var root InfoDatRoot
 	if err := xml.Unmarshal(data, &root); err == nil && root.Emitente.Cnpj != "" {
 		return &root.Emitente, nil
 	}
 
-
 	if err := xml.Unmarshal(data, info); err == nil && info.Cnpj != "" {
 		return info, nil
 	}
 
-
-
-
 	content := string(data)
-
 
 	extract := func(tag string) string {
 		return extractTagValue(content, tag)
@@ -114,24 +101,19 @@ func ParseInfoDat(filePath string) (*EmitenteInfo, error) {
 
 	if info.Cnpj == "" {
 
-
-
 		return nil, fmt.Errorf("falha ao parsear XML: CNPJ não encontrado (tente verificar o formato do arquivo)")
 	}
 
 	return info, nil
 }
 
-
 func extractTagValue(content, tag string) string {
-
 
 	startTag := "<" + tag + ">"
 	endTag := "</" + tag + ">"
 
 	s := 0
 	e := 0
-
 
 	for i := 0; i < len(content)-len(startTag); i++ {
 		if content[i:i+len(startTag)] == startTag {
@@ -142,7 +124,6 @@ func extractTagValue(content, tag string) string {
 	if s == 0 {
 		return ""
 	}
-
 
 	for i := s; i < len(content)-len(endTag); i++ {
 		if content[i:i+len(endTag)] == endTag {
@@ -156,7 +137,6 @@ func extractTagValue(content, tag string) string {
 	}
 	return ""
 }
-
 
 func (m *Manager) UpdateEmitente(info *EmitenteInfo, filePath string, log LogFunc) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -181,14 +161,12 @@ func (m *Manager) UpdateEmitente(info *EmitenteInfo, filePath string, log LogFun
 
 	log(fmt.Sprintf("📍 Município: %s - %s", municipio.Nome, municipio.UF.Sigla))
 
-
 	pessoas := m.conn.GetCollection(database.CollectionPessoas)
 	filter := bson.M{
 		"_t": bson.M{"$in": []string{"Matriz"}},
 	}
 
 	log("🔍 Buscando emitente Matriz no banco de dados...")
-
 
 	update := bson.M{
 		"$set": bson.M{
@@ -229,16 +207,13 @@ func (m *Manager) UpdateEmitente(info *EmitenteInfo, filePath string, log LogFun
 		return fmt.Errorf("nenhum emitente Matriz encontrado")
 	}
 
-
 	log(fmt.Sprintf("📂 Copiando info.dat de origem: %s", filePath))
 	serverPath := `C:\DigiSat\SuiteG6\Servidor\info.dat`
-
 
 	serverDir := `C:\DigiSat\SuiteG6\Servidor`
 	if err := os.MkdirAll(serverDir, 0755); err != nil {
 		log(fmt.Sprintf("⚠️ Erro ao criar diretório do servidor: %v", err))
 	}
-
 
 	if _, err := os.Stat(filePath); err == nil {
 		if err := copyFile(filePath, serverPath); err != nil {
@@ -253,7 +228,6 @@ func (m *Manager) UpdateEmitente(info *EmitenteInfo, filePath string, log LogFun
 	log(fmt.Sprintf("✅ Emitente atualizado com sucesso! (CNPJ: %s)", info.Cnpj))
 	return nil
 }
-
 
 var ufData = map[string]UFInfo{
 	"AC": {Sigla: "AC", Nome: "Acre", CodigoIbge: 12},
@@ -285,7 +259,6 @@ var ufData = map[string]UFInfo{
 	"TO": {Sigla: "TO", Nome: "Tocantins", CodigoIbge: 17},
 }
 
-
 func ConsultaMunicipio(codigoIbge string) (*MunicipioInfo, error) {
 
 	if len(codigoIbge) < 2 {
@@ -300,7 +273,6 @@ func ConsultaMunicipio(codigoIbge string) (*MunicipioInfo, error) {
 			break
 		}
 	}
-
 
 	url := fmt.Sprintf("https://servicodados.ibge.gov.br/api/v1/localidades/municipios/%s", codigoIbge)
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -332,7 +304,6 @@ func ConsultaMunicipio(codigoIbge string) (*MunicipioInfo, error) {
 		UF:         ufInfo,
 	}, nil
 }
-
 
 func (m *Manager) ListEmitentes(log LogFunc) ([]EmitenteBasic, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -373,7 +344,6 @@ func (m *Manager) ListEmitentes(log LogFunc) ([]EmitenteBasic, error) {
 	return emitentes, nil
 }
 
-
 func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
@@ -382,7 +352,6 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	if err != nil {
 		return fmt.Errorf("ID inválido: %v", err)
 	}
-
 
 	log("⚠️ Encerrando Sincronizador Digisat para liberar arquivos...")
 	if count, err := windows.KillSyncProcess(func(msg string) {
@@ -395,7 +364,6 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 		}
 	}
 
-
 	log(fmt.Sprintf("🗑️ Iniciando exclusão do emitente %s...", emitenteID))
 	pessoasCollection := m.conn.GetCollection(database.CollectionPessoas)
 
@@ -403,9 +371,7 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 		Cnpj string `bson:"Cnpj"`
 	}
 
-
 	_ = pessoasCollection.FindOne(ctx, bson.M{"_id": oid}).Decode(&emitenteToDelete)
-
 
 	deleteFromCollection := func(collectionName string) {
 		col := m.conn.GetCollection(collectionName)
@@ -417,12 +383,8 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 		}
 	}
 
-
-
-
 	log("🔄 Removendo dados vinculados ao emitente...")
 	log("   (Limpeza completa de 50+ coleções)")
-
 
 	log("💰 Financeiro...")
 	deleteFromCollection(database.CollectionMovimentacoes)
@@ -437,7 +399,6 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionItensCreditoDebitoCliente)
 	deleteFromCollection(database.CollectionItensCreditoDebitoCashback)
 
-
 	log("📦 Movimentações...")
 	deleteFromCollection(database.CollectionAbastecimentos)
 	deleteFromCollection(database.CollectionDevolucoes)
@@ -451,7 +412,6 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionRomaneiosCarga)
 	deleteFromCollection(database.CollectionXmlMovimentacoes)
 
-
 	log("🍽️ Restaurante/Food Service...")
 	deleteFromCollection(database.CollectionItensMesaConta)
 	deleteFromCollection(database.CollectionItemMesaContaOcorrencias)
@@ -459,7 +419,6 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionMesasContasClienteBloqueadas)
 	deleteFromCollection(database.CollectionOrdensCardapio)
 	deleteFromCollection(database.CollectionReceitas)
-
 
 	log("📊 Estoques...")
 	deleteFromCollection(database.CollectionEstoquesFisicos)
@@ -470,12 +429,10 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionFolhasLmc)
 	deleteFromCollection(database.CollectionSaldosIcmsStRetido)
 
-
 	log("🏭 Produção/Indústria...")
 	deleteFromCollection(database.CollectionOrdensProducao)
 	deleteFromCollection(database.CollectionOrcamentosIndustria)
 	deleteFromCollection(database.CollectionMaosObra)
-
 
 	log("🔗 Integrações...")
 	deleteFromCollection(database.CollectionAnunciosMercadoLivre)
@@ -484,7 +441,6 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionArquivosDigisatContabil)
 	deleteFromCollection(database.CollectionArquivosSngpc)
 
-
 	log("📅 Agendamentos/Pessoal...")
 	deleteFromCollection(database.CollectionAgendamentos)
 	deleteFromCollection(database.CollectionTurnos)
@@ -492,13 +448,11 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	deleteFromCollection(database.CollectionJornadasTrabalho)
 	deleteFromCollection(database.CollectionInternacoes)
 
-
 	log("📋 Contratos/Controle...")
 	deleteFromCollection(database.CollectionGestaoContratos)
 	deleteFromCollection(database.CollectionControlesEntrega)
 	deleteFromCollection(database.CollectionValesPresente)
 	deleteFromCollection(database.CollectionRegistrosPafEcf)
-
 
 	log("🔗 Produtos/Serviços vinculados...")
 	pseCollection := m.conn.GetCollection(database.CollectionProdutosServicosEmpresa)
@@ -510,7 +464,6 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	} else {
 		log(fmt.Sprintf("   ✓ ProdutosServicosEmpresa: %d removidos", res.DeletedCount))
 	}
-
 
 	log("   🧹 Verificando estoques órfãos...")
 	cur, err := estoqueCollection.Find(ctx, bson.M{})
@@ -536,24 +489,18 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 		}
 	}
 
-
 	log("🔢 Sequências e Tokens...")
 	deleteFromCollection(database.CollectionSequenciasMovimentacoes)
 	deleteFromCollection(database.CollectionTokens)
-
 
 	log("⚙️ Configurações (crítico para o servidor)...")
 	deleteFromCollection(database.CollectionConfiguracoesServidor)
 	deleteFromCollection(database.CollectionConfiguracoes)
 
-
-
-
 	log("👤 Removendo perfis de usuários vinculados ao emitente...")
 	if err := m.removeUsuarioPerfis(ctx, oid, log); err != nil {
 		log(fmt.Sprintf("⚠️ Erro ao remover perfis de usuários: %v", err))
 	}
-
 
 	log("🔄 Removendo cadastro do Emitente...")
 	res, err = pessoasCollection.DeleteOne(ctx, bson.M{"_id": oid})
@@ -564,7 +511,6 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	if res.DeletedCount == 0 {
 		return fmt.Errorf("emitente não encontrado para exclusão")
 	}
-
 
 	log("🔍 Verificando integridade do servidor (info.dat)...")
 	serverPath := `C:\DigiSat\SuiteG6\Servidor\info.dat`
@@ -587,11 +533,8 @@ func (m *Manager) DeleteEmitente(emitenteID string, log LogFunc) error {
 	return nil
 }
 
-
 func (m *Manager) removeUsuarioPerfis(ctx context.Context, emitenteID primitive.ObjectID, log LogFunc) error {
 	usuariosCollection := m.conn.GetCollection(database.CollectionUsuarios)
-
-
 
 	result, err := usuariosCollection.UpdateMany(ctx,
 		bson.M{},
@@ -614,7 +557,6 @@ func (m *Manager) removeUsuarioPerfis(ctx context.Context, emitenteID primitive.
 	return nil
 }
 
-
 func copyFile(src, dst string) error {
 	sourceFile, err := os.Open(src)
 	if err != nil {
@@ -631,7 +573,6 @@ func copyFile(src, dst string) error {
 	_, err = io.Copy(destFile, sourceFile)
 	return err
 }
-
 
 func decodeJSON(r io.Reader, v interface{}) error {
 	data, err := io.ReadAll(r)

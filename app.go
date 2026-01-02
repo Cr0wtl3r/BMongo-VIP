@@ -63,6 +63,7 @@ func (a *App) startup(ctx context.Context) {
 	a.db = conn
 	a.operations = operations.NewManager(conn)
 	a.rollback = operations.NewRollbackManager(conn)
+	a.operations.SetRollback(a.rollback)
 
 	validator := database.NewValidator(conn)
 	ok, msg := validator.ValidateConnection()
@@ -129,6 +130,7 @@ func (a *App) RetryConnection() error {
 	a.db = conn
 	a.operations = operations.NewManager(conn)
 	a.rollback = operations.NewRollbackManager(conn)
+	a.operations.SetRollback(a.rollback)
 
 	validator := database.NewValidator(conn)
 	ok, msg := validator.ValidateConnection()
@@ -765,4 +767,70 @@ func (a *App) SelectBackupFile(title string) (string, error) {
 			{DisplayName: "Todos os arquivos (*.*)", Pattern: "*.*"},
 		},
 	})
+}
+
+func (a *App) RepairMongoDBOffline() error {
+	a.addLog("🔧 Iniciando reparo offline do MongoDB...")
+
+	err := windows.RepairMongoDB(func(msg string) {
+		a.addLog(msg)
+	})
+
+	if err != nil {
+		a.addLog(fmt.Sprintf("❌ Erro no reparo: %s", err.Error()))
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) RepairMongoDBOnline() error {
+	a.addLog("🔧 Iniciando reparo online do MongoDB...")
+
+	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:12220/DigisatServer?authSource=admin",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASS"),
+		os.Getenv("DB_HOST"),
+	)
+
+	err := windows.RepairMongoDBActive(mongoURL, func(msg string) {
+		a.addLog(msg)
+	})
+
+	if err != nil {
+		a.addLog(fmt.Sprintf("❌ Erro no reparo: %s", err.Error()))
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) ReleaseFirewallPorts() error {
+	a.addLog("🔥 Liberando portas no firewall...")
+
+	err := windows.ReleaseFirewallPorts(func(msg string) {
+		a.addLog(msg)
+	})
+
+	if err != nil {
+		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) AllowSecurityExclusions() error {
+	a.addLog("🛡️ Configurando exclusões de segurança...")
+
+	err := windows.AllowSecurityExclusions(func(msg string) {
+		a.addLog(msg)
+	})
+
+	if err != nil {
+		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		return err
+	}
+
+	return nil
 }

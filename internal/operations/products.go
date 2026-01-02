@@ -173,8 +173,33 @@ func (m *Manager) EnableMEI(log LogFunc) (int, error) {
 
 	pessoas := m.conn.GetCollection(database.CollectionPessoas)
 
+	filter := bson.M{"_t.2": "Emitente"}
+
+	var emitentesBackup []map[string]interface{}
+	if m.rollback != nil {
+		cursor, err := pessoas.Find(ctx, filter)
+		if err == nil {
+			defer cursor.Close(ctx)
+			for cursor.Next(ctx) {
+				var doc bson.M
+				if err := cursor.Decode(&doc); err != nil {
+					continue
+				}
+				id, _ := doc["_id"].(primitive.ObjectID)
+				wasEnabled := false
+				if mei, ok := doc["MicroempreendedorIndividual"].(bson.M); ok {
+					wasEnabled, _ = mei["Habilitado"].(bool)
+				}
+				emitentesBackup = append(emitentesBackup, map[string]interface{}{
+					"id":         id.Hex(),
+					"wasEnabled": wasEnabled,
+				})
+			}
+		}
+	}
+
 	result, err := pessoas.UpdateMany(ctx,
-		bson.M{"_t.2": "Emitente"},
+		filter,
 		bson.M{"$set": bson.M{"MicroempreendedorIndividual.Habilitado": true}},
 	)
 	if err != nil {
@@ -182,6 +207,16 @@ func (m *Manager) EnableMEI(log LogFunc) (int, error) {
 	}
 
 	count := int(result.ModifiedCount)
+
+	if m.rollback != nil && len(emitentesBackup) > 0 && count > 0 {
+		m.rollback.RecordOperation(
+			OpEnableMEI,
+			fmt.Sprintf("Habilitou MEI para %d emitentes", count),
+			map[string]interface{}{"emitentes": emitentesBackup},
+			true,
+		)
+	}
+
 	if count == 0 {
 		log("Nenhuma referência encontrada. Verifique a base.")
 	} else if count == 1 {
@@ -368,6 +403,29 @@ func (m *Manager) ChangeIbsCbsTributationByNCM(ncms []string, tributationID stri
 		},
 	}
 
+	var changesBackup []map[string]interface{}
+	if m.rollback != nil {
+		cursor, err := produtosEmpresa.Find(ctx, filter)
+		if err == nil {
+			defer cursor.Close(ctx)
+			for cursor.Next(ctx) {
+				var doc bson.M
+				if err := cursor.Decode(&doc); err != nil {
+					continue
+				}
+				id, _ := doc["_id"].(primitive.ObjectID)
+				prevTribID := ""
+				if refOid, ok := doc["TributacaoIbsCbsReferencia"].(primitive.ObjectID); ok {
+					prevTribID = refOid.Hex()
+				}
+				changesBackup = append(changesBackup, map[string]interface{}{
+					"productId":  id.Hex(),
+					"prevTribId": prevTribID,
+				})
+			}
+		}
+	}
+
 	update := bson.M{
 		"$set": bson.M{
 			"TributacaoIbsCbsReferencia": tribOID,
@@ -379,6 +437,15 @@ func (m *Manager) ChangeIbsCbsTributationByNCM(ncms []string, tributationID stri
 	result, err := produtosEmpresa.UpdateMany(ctx, filter, update)
 	if err != nil {
 		return fmt.Errorf("erro ao atualizar produtos: %w", err)
+	}
+
+	if m.rollback != nil && len(changesBackup) > 0 && result.ModifiedCount > 0 {
+		m.rollback.RecordOperation(
+			OpChangeTribIbsCbs,
+			fmt.Sprintf("Alterou tributação IBS/CBS de %d produtos", result.ModifiedCount),
+			map[string]interface{}{"changes": changesBackup},
+			true,
+		)
 	}
 
 	log(fmt.Sprintf("Sucesso! %d produtos atualizados.", result.ModifiedCount))

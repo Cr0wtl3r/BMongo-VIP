@@ -9,7 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-
 type InvoiceType string
 
 const (
@@ -21,7 +20,6 @@ const (
 	InvoiceTypeNFSe  InvoiceType = "NFSe"
 )
 
-
 type InvoiceStatus string
 
 const (
@@ -32,7 +30,6 @@ const (
 	StatusEmDigitacao InvoiceStatus = "Em Digitação"
 )
 
-
 var StatusCodeMap = map[InvoiceStatus]int{
 	StatusConcluido:   2,
 	StatusCancelado:   4,
@@ -41,13 +38,11 @@ var StatusCodeMap = map[InvoiceStatus]int{
 	StatusEmDigitacao: 1,
 }
 
-
 func GetCollectionForInvoiceType(invoiceType InvoiceType) string {
 
 	return "Movimentacoes"
-	
-}
 
+}
 
 func (m *Manager) ChangeInvoiceKey(invoiceType string, oldKey string, newKey string, log LogFunc) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -62,12 +57,20 @@ func (m *Manager) ChangeInvoiceKey(invoiceType string, oldKey string, newKey str
 	log(fmt.Sprintf("🔑 Chave antiga: %s", oldKey))
 	log(fmt.Sprintf("🔑 Chave nova: %s", newKey))
 
-
 	coll := m.conn.GetCollection(collName)
-
 
 	filter := bson.M{"ChaveAcesso": oldKey}
 
+	var invoiceID string
+	if m.rollback != nil {
+		var doc bson.M
+		err := coll.FindOne(ctx, filter).Decode(&doc)
+		if err == nil {
+			if id, ok := doc["_id"].(primitive.ObjectID); ok {
+				invoiceID = id.Hex()
+			}
+		}
+	}
 
 	update := bson.M{
 		"$set": bson.M{
@@ -81,10 +84,23 @@ func (m *Manager) ChangeInvoiceKey(invoiceType string, oldKey string, newKey str
 	}
 
 	modified := int(result.ModifiedCount)
+
+	if m.rollback != nil && invoiceID != "" && modified > 0 {
+		m.rollback.RecordOperation(
+			OpChangeInvoiceKey,
+			fmt.Sprintf("Alterou chave de NF (%s)", invoiceType),
+			map[string]interface{}{
+				"invoiceId": invoiceID,
+				"prevKey":   oldKey,
+				"newKey":    newKey,
+			},
+			true,
+		)
+	}
+
 	log(fmt.Sprintf("✅ %d documento(s) atualizado(s)", modified))
 	return modified, nil
 }
-
 
 func (m *Manager) ChangeInvoiceStatus(invoiceType string, serie string, numero string, newStatus string, log LogFunc) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -101,14 +117,11 @@ func (m *Manager) ChangeInvoiceStatus(invoiceType string, serie string, numero s
 
 	coll := m.conn.GetCollection(collName)
 
-
 	if (invoiceType != string(InvoiceTypeDAV) && invoiceType != string(InvoiceTypeDAVOS)) && serie == "" {
 		serie = "1"
 	}
 
-
 	var filter bson.M
-
 
 	var numeroFilter interface{} = numero
 	if numInt, err := helperToInt(numero); err == nil {
@@ -124,7 +137,6 @@ func (m *Manager) ChangeInvoiceStatus(invoiceType string, serie string, numero s
 		}
 	} else {
 
-
 		var serieFilter interface{} = serie
 		if serieInt, err := helperToInt(serie); err == nil {
 			serieFilter = bson.M{"$in": bson.A{serie, serieInt}}
@@ -138,12 +150,27 @@ func (m *Manager) ChangeInvoiceStatus(invoiceType string, serie string, numero s
 		}
 	}
 
+	var invoiceID string
+	var prevSituacao bson.M
+	if m.rollback != nil {
+		var doc bson.M
+		err := coll.FindOne(ctx, filter).Decode(&doc)
+		if err == nil {
+			if id, ok := doc["_id"].(primitive.ObjectID); ok {
+				invoiceID = id.Hex()
+			}
+			if sit, ok := doc["Situacao"].(bson.M); ok {
+				prevSituacao = sit
+			} else if sit, ok := doc["SituacaoMovimentacao"].(bson.M); ok {
+				prevSituacao = sit
+			}
+		}
+	}
 
 	statusCode := StatusCodeMap[InvoiceStatus(newStatus)]
 	if statusCode == 0 {
 		statusCode = 1
 	}
-
 
 	situacaoTypeName := newStatus
 	switch newStatus {
@@ -153,7 +180,6 @@ func (m *Manager) ChangeInvoiceStatus(invoiceType string, serie string, numero s
 		situacaoTypeName = "EmDigitacao"
 
 	}
-
 
 	historicoEntry := bson.M{
 		"SituacaoMovimentacao": bson.M{
@@ -168,8 +194,6 @@ func (m *Manager) ChangeInvoiceStatus(invoiceType string, serie string, numero s
 		"Observacao":  "Situação definida manualmente via DigiTools",
 		"DataHora":    primitive.NewDateTimeFromTime(time.Now()),
 	}
-
-
 
 	situacaoObj := bson.M{
 		"_t": bson.A{
@@ -199,10 +223,22 @@ func (m *Manager) ChangeInvoiceStatus(invoiceType string, serie string, numero s
 		return fmt.Errorf("documento não encontrado")
 	}
 
+	if m.rollback != nil && invoiceID != "" {
+		m.rollback.RecordOperation(
+			OpChangeInvoiceStatus,
+			fmt.Sprintf("Alterou situação de NF (%s) para %s", invoiceType, newStatus),
+			map[string]interface{}{
+				"invoiceId":    invoiceID,
+				"prevSituacao": prevSituacao,
+				"newStatus":    newStatus,
+			},
+			true,
+		)
+	}
+
 	log("✅ Situação atualizada com sucesso!")
 	return nil
 }
-
 
 func GetInvoiceTypes() []string {
 	return []string{
@@ -215,7 +251,6 @@ func GetInvoiceTypes() []string {
 	}
 }
 
-
 func GetInvoiceStatuses() []string {
 	return []string{
 		string(StatusConcluido),
@@ -225,7 +260,6 @@ func GetInvoiceStatuses() []string {
 		string(StatusEmDigitacao),
 	}
 }
-
 
 type InvoiceDetails struct {
 	ID       string  `json:"id"`
@@ -237,7 +271,6 @@ type InvoiceDetails struct {
 	Valor    float64 `json:"valor"`
 	Situacao string  `json:"situacao"`
 }
-
 
 func (m *Manager) GetInvoiceByKey(invoiceType string, key string, log LogFunc) (*InvoiceDetails, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -255,7 +288,6 @@ func (m *Manager) GetInvoiceByKey(invoiceType string, key string, log LogFunc) (
 	return m.parseInvoiceDetails(result), nil
 }
 
-
 func (m *Manager) GetInvoiceByNumber(invoiceType string, serie string, number string, log LogFunc) (*InvoiceDetails, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -263,13 +295,11 @@ func (m *Manager) GetInvoiceByNumber(invoiceType string, serie string, number st
 	collName := GetCollectionForInvoiceType(InvoiceType(invoiceType))
 	coll := m.conn.GetCollection(collName)
 
-
 	if (invoiceType != string(InvoiceTypeDAV) && invoiceType != string(InvoiceTypeDAVOS)) && serie == "" {
 		serie = "1"
 	}
 
 	var filter bson.M
-
 
 	var numeroFilter interface{} = number
 	if numInt, err := helperToInt(number); err == nil {
@@ -303,18 +333,14 @@ func (m *Manager) GetInvoiceByNumber(invoiceType string, serie string, number st
 	return m.parseInvoiceDetails(result), nil
 }
 
-
 func (m *Manager) parseInvoiceDetails(doc bson.M) *InvoiceDetails {
 	details := &InvoiceDetails{}
-
 
 	if id, ok := doc["_id"].(primitive.ObjectID); ok {
 		details.ID = id.Hex()
 	}
 
-
 	details.Numero = getStringSafe(doc, "Numero")
-
 
 	if serieObj, ok := doc["Serie"].(primitive.M); ok {
 		details.Serie = getStringSafe(serieObj, "Numero")
@@ -322,9 +348,7 @@ func (m *Manager) parseInvoiceDetails(doc bson.M) *InvoiceDetails {
 		details.Serie = getStringSafe(doc, "Serie")
 	}
 
-
 	details.Chave = getStringSafe(doc, "ChaveAcesso")
-
 
 	if dt, ok := doc["DataHoraEmissao"].(primitive.DateTime); ok {
 		details.Data = dt.Time().Format("02/01/2006 15:04:05")
@@ -332,13 +356,11 @@ func (m *Manager) parseInvoiceDetails(doc bson.M) *InvoiceDetails {
 		details.Data = dt.Time().Format("02/01/2006")
 	}
 
-
 	if dest, ok := doc["Destinatario"].(primitive.M); ok {
 		details.Cliente = getStringSafe(dest, "Nome")
 	} else if pessoa, ok := doc["Pessoa"].(primitive.M); ok {
 		details.Cliente = getStringSafe(pessoa, "Nome")
 	}
-
 
 	if itens, ok := doc["ItensBase"].(primitive.A); ok && len(itens) > 0 {
 		var total float64
@@ -366,7 +388,6 @@ func (m *Manager) parseInvoiceDetails(doc bson.M) *InvoiceDetails {
 		}
 	}
 
-
 	if sit, ok := doc["SituacaoMovimentacao"].(primitive.M); ok {
 		details.Situacao = getStringSafe(sit, "Descricao")
 	} else if sit, ok := doc["Situacao"].(primitive.M); ok {
@@ -381,7 +402,6 @@ func (m *Manager) parseInvoiceDetails(doc bson.M) *InvoiceDetails {
 
 	return details
 }
-
 
 func getStringSafe(m bson.M, key string) string {
 	val := m[key]
@@ -403,13 +423,11 @@ func getStringSafe(m bson.M, key string) string {
 	return ""
 }
 
-
 func helperToInt(s string) (int, error) {
 	var i int
 	_, err := fmt.Sscanf(s, "%d", &i)
 	return i, err
 }
-
 
 func toFloatSafe(v interface{}) float64 {
 	switch t := v.(type) {

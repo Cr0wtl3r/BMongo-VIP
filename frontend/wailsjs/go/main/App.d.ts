@@ -3,6 +3,8 @@
 import {operations} from '../models';
 import {windows} from '../models';
 
+export function AllowSecurityExclusions():Promise<void>;
+
 export function BackupDatabase(arg1:string):Promise<operations.BackupResult>;
 
 export function BulkActivateByFilter(arg1:Record<string, any>,arg2:boolean):Promise<number>;
@@ -76,6 +78,12 @@ export function ListBackups(arg1:string):Promise<Array<operations.BackupResult>>
 export function ListEmitentes():Promise<Array<Record<string, any>>>;
 
 export function Login(arg1:string):Promise<boolean>;
+
+export function ReleaseFirewallPorts():Promise<void>;
+
+export function RepairMongoDBOffline():Promise<void>;
+
+export function RepairMongoDBOnline():Promise<void>;
 
 export function RestoreDatabase(arg1:string,arg2:boolean):Promise<void>;
 

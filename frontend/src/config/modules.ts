@@ -165,4 +165,30 @@ export const modules = [
       },
     ],
   },
+  {
+    name: "🔧 Manutenção",
+    items: [
+      {
+        id: "repair_offline",
+        label: "Reparar MongoDB (Offline)",
+        desc: "Para o serviço e executa reparo completo",
+        danger: true,
+      },
+      {
+        id: "repair_online",
+        label: "Reparar MongoDB (Ativo)",
+        desc: "Repara banco com serviço rodando",
+      },
+      {
+        id: "liberar_portas",
+        label: "Liberar Portas Firewall",
+        desc: "Adiciona regras para portas Digisat",
+      },
+      {
+        id: "permitir_seguranca",
+        label: "Permitir Segurança",
+        desc: "Adiciona exclusões no Windows Defender",
+      },
+    ],
+  },
 ];

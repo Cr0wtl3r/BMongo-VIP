@@ -11,7 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-
 type ProductFilter struct {
 	QuantityOp    string   `json:"quantityOp"`
 	QuantityValue float64  `json:"quantityValue"`
@@ -28,7 +27,6 @@ type ProductFilter struct {
 	ActiveStatus  *bool    `json:"activeStatus"`
 }
 
-
 type FilteredProduct struct {
 	ID        string  `json:"id"`
 	Name      string  `json:"name"`
@@ -42,13 +40,11 @@ type FilteredProduct struct {
 	ItemType  string  `json:"itemType"`
 }
 
-
 type FilterResult struct {
 	Products []FilteredProduct `json:"products"`
 	Total    int64             `json:"total"`
 	Limit    int               `json:"limit"`
 }
-
 
 func (m *Manager) FilterProducts(filter ProductFilter, log LogFunc) (FilterResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -56,9 +52,7 @@ func (m *Manager) FilterProducts(filter ProductFilter, log LogFunc) (FilterResul
 
 	log("🔍 Aplicando filtros...")
 
-
 	empresaFilter := bson.M{}
-
 
 	if len(filter.NCMs) > 0 {
 		patterns := make([]bson.M, len(filter.NCMs))
@@ -73,7 +67,6 @@ func (m *Manager) FilterProducts(filter ProductFilter, log LogFunc) (FilterResul
 		}
 	}
 
-
 	if filter.StateTribID != "" {
 		if oid, err := primitive.ObjectIDFromHex(filter.StateTribID); err == nil {
 			empresaFilter["TributacaoEstadualReferencia"] = oid
@@ -85,7 +78,6 @@ func (m *Manager) FilterProducts(filter ProductFilter, log LogFunc) (FilterResul
 		}
 	}
 
-
 	if filter.CostPriceOp != "" && filter.CostPriceVal > 0 {
 		empresaFilter["PrecosCustos.0.Valor"] = buildComparisonFilter(filter.CostPriceOp, filter.CostPriceVal)
 	}
@@ -93,16 +85,13 @@ func (m *Manager) FilterProducts(filter ProductFilter, log LogFunc) (FilterResul
 		empresaFilter["PrecosVendas.0.Valor"] = buildComparisonFilter(filter.SalePriceOp, filter.SalePriceVal)
 	}
 
-
 	produtosEmpresa := m.conn.GetCollection(database.CollectionProdutosServicosEmpresa)
-
 
 	totalEmpresaCount, err := produtosEmpresa.CountDocuments(ctx, empresaFilter)
 	if err != nil {
 		log(fmt.Sprintf("⚠️ Erro ao contar: %v", err))
 	}
 	log(fmt.Sprintf("📊 Total de produtos no filtro empresa: %d", totalEmpresaCount))
-
 
 	opts := options.Find().SetLimit(2000)
 	cursor, err := produtosEmpresa.Find(ctx, empresaFilter, opts)
@@ -118,7 +107,6 @@ func (m *Manager) FilterProducts(filter ProductFilter, log LogFunc) (FilterResul
 
 	log(fmt.Sprintf("📦 Carregados %d produtos para exibição", len(empresaDocs)))
 
-
 	produtoRefs := make([]primitive.ObjectID, 0, len(empresaDocs))
 	empresaMap := make(map[string]bson.M)
 	for _, doc := range empresaDocs {
@@ -127,7 +115,6 @@ func (m *Manager) FilterProducts(filter ProductFilter, log LogFunc) (FilterResul
 			empresaMap[ref.Hex()] = doc
 		}
 	}
-
 
 	produtoFilterForCount := bson.M{"_id": bson.M{"$in": produtoRefs}}
 	if filter.Brand != "" {
@@ -142,7 +129,6 @@ func (m *Manager) FilterProducts(filter ProductFilter, log LogFunc) (FilterResul
 	if filter.ActiveStatus != nil {
 		produtoFilterForCount["Ativo"] = *filter.ActiveStatus
 	}
-
 
 	produtosServicos := m.conn.GetCollection(database.CollectionProdutosServicos)
 	produtoFilter := produtoFilterForCount
@@ -167,7 +153,6 @@ func (m *Manager) FilterProducts(filter ProductFilter, log LogFunc) (FilterResul
 		prodID, _ := produto["_id"].(primitive.ObjectID)
 		empresaDoc := empresaMap[prodID.Hex()]
 
-
 		qty := 0.0
 		if empresaDoc != nil {
 			if estoqueRef, ok := empresaDoc["EstoqueReferencia"].(primitive.ObjectID); ok {
@@ -175,13 +160,11 @@ func (m *Manager) FilterProducts(filter ProductFilter, log LogFunc) (FilterResul
 			}
 		}
 
-
 		if filter.QuantityOp != "" {
 			if !matchesComparison(qty, filter.QuantityOp, filter.QuantityValue) {
 				continue
 			}
 		}
-
 
 		brandName := ""
 		if marca, ok := produto["Marca"].(bson.M); ok {
@@ -219,7 +202,6 @@ func (m *Manager) FilterProducts(filter ProductFilter, log LogFunc) (FilterResul
 	}, nil
 }
 
-
 func (m *Manager) BulkActivateProducts(productIDs []string, activate bool, log LogFunc) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -238,6 +220,27 @@ func (m *Manager) BulkActivateProducts(productIDs []string, activate bool, log L
 	}
 
 	produtosServicos := m.conn.GetCollection(database.CollectionProdutosServicos)
+
+	var productsBackup []map[string]interface{}
+	if m.rollback != nil {
+		cursor, err := produtosServicos.Find(ctx, bson.M{"_id": bson.M{"$in": oids}})
+		if err == nil {
+			defer cursor.Close(ctx)
+			for cursor.Next(ctx) {
+				var doc bson.M
+				if err := cursor.Decode(&doc); err != nil {
+					continue
+				}
+				id, _ := doc["_id"].(primitive.ObjectID)
+				wasActive, _ := doc["Ativo"].(bool)
+				productsBackup = append(productsBackup, map[string]interface{}{
+					"id":        id.Hex(),
+					"wasActive": wasActive,
+				})
+			}
+		}
+	}
+
 	result, err := produtosServicos.UpdateMany(ctx,
 		bson.M{"_id": bson.M{"$in": oids}},
 		bson.M{"$set": bson.M{"Ativo": activate}},
@@ -248,10 +251,23 @@ func (m *Manager) BulkActivateProducts(productIDs []string, activate bool, log L
 	}
 
 	count := int(result.ModifiedCount)
+
+	if m.rollback != nil && len(productsBackup) > 0 {
+		actionLabel := "Inativou"
+		if activate {
+			actionLabel = "Ativou"
+		}
+		m.rollback.RecordOperation(
+			OpBulkActivate,
+			fmt.Sprintf("%s %d produtos", actionLabel, count),
+			map[string]interface{}{"products": productsBackup},
+			true,
+		)
+	}
+
 	log(fmt.Sprintf("✅ %d produtos atualizados", count))
 	return count, nil
 }
-
 
 func (m *Manager) BulkActivateByFilter(filter ProductFilter, activate bool, log LogFunc) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -262,7 +278,6 @@ func (m *Manager) BulkActivateByFilter(filter ProductFilter, activate bool, log 
 		action = "ativando"
 	}
 	log(fmt.Sprintf("🔄 %s TODOS os produtos do filtro...", action))
-
 
 	empresaFilter := bson.M{}
 
@@ -289,7 +304,6 @@ func (m *Manager) BulkActivateByFilter(filter ProductFilter, activate bool, log 
 			empresaFilter["TributacaoFederalReferencia"] = oid
 		}
 	}
-
 
 	produtosEmpresa := m.conn.GetCollection(database.CollectionProdutosServicosEmpresa)
 	cursor, err := produtosEmpresa.Find(ctx, empresaFilter)
@@ -319,7 +333,6 @@ func (m *Manager) BulkActivateByFilter(filter ProductFilter, activate bool, log 
 		return 0, nil
 	}
 
-
 	produtoFilter := bson.M{"_id": bson.M{"$in": produtoRefs}}
 
 	if filter.Brand != "" {
@@ -335,8 +348,28 @@ func (m *Manager) BulkActivateByFilter(filter ProductFilter, activate bool, log 
 		produtoFilter["Ativo"] = *filter.ActiveStatus
 	}
 
-
 	produtosServicos := m.conn.GetCollection(database.CollectionProdutosServicos)
+
+	var productsBackup []map[string]interface{}
+	if m.rollback != nil {
+		backupCursor, err := produtosServicos.Find(ctx, produtoFilter)
+		if err == nil {
+			defer backupCursor.Close(ctx)
+			for backupCursor.Next(ctx) {
+				var doc bson.M
+				if err := backupCursor.Decode(&doc); err != nil {
+					continue
+				}
+				id, _ := doc["_id"].(primitive.ObjectID)
+				wasActive, _ := doc["Ativo"].(bool)
+				productsBackup = append(productsBackup, map[string]interface{}{
+					"id":        id.Hex(),
+					"wasActive": wasActive,
+				})
+			}
+		}
+	}
+
 	result, err := produtosServicos.UpdateMany(ctx,
 		produtoFilter,
 		bson.M{"$set": bson.M{"Ativo": activate}},
@@ -347,10 +380,23 @@ func (m *Manager) BulkActivateByFilter(filter ProductFilter, activate bool, log 
 	}
 
 	count := int(result.ModifiedCount)
+
+	if m.rollback != nil && len(productsBackup) > 0 {
+		actionLabel := "Inativou"
+		if activate {
+			actionLabel = "Ativou"
+		}
+		m.rollback.RecordOperation(
+			OpBulkActivate,
+			fmt.Sprintf("%s %d produtos (filtro)", actionLabel, count),
+			map[string]interface{}{"products": productsBackup},
+			true,
+		)
+	}
+
 	log(fmt.Sprintf("✅ %d produtos atualizados no total!", count))
 	return count, nil
 }
-
 
 func buildComparisonFilter(op string, value float64) bson.M {
 	switch op {

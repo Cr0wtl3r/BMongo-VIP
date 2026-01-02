@@ -23,6 +23,10 @@ import {
   StartDigisatServices,
   KillDigisatProcesses,
   DeleteEmitente,
+  RepairMongoDBOffline,
+  RepairMongoDBOnline,
+  ReleaseFirewallPorts,
+  AllowSecurityExclusions,
 } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 
@@ -237,6 +241,19 @@ function App() {
         break;
       case 'kill_processes':
         confirmAction("⚠️ Encerrar Processos", "Isso força o encerramento de todos os processos Digisat!", KillDigisatProcesses);
+        break;
+
+      case 'repair_offline':
+        confirmAction("⚠️ Reparar MongoDB (Offline)", "Isso PARA o serviço MongoDB, executa reparo completo e reinicia. A aplicação pode ficar indisponível por vários minutos.", RepairMongoDBOffline);
+        break;
+      case 'repair_online':
+        confirmAction("Reparar MongoDB (Ativo)", "Executa comando de reparo com o MongoDB rodando. Mais seguro mas menos efetivo.", RepairMongoDBOnline);
+        break;
+      case 'liberar_portas':
+        confirmAction("Liberar Portas Firewall", "Adiciona regras no Windows Firewall para liberar portas usadas pelo Digisat.", ReleaseFirewallPorts);
+        break;
+      case 'permitir_seguranca':
+        confirmAction("Permitir Segurança", "Adiciona exclusões no Windows Defender e configura permissões de pasta.", AllowSecurityExclusions);
         break;
     }
   };

@@ -35,6 +35,8 @@ func (m *Manager) InactivateZeroProducts(log LogFunc) (int, error) {
 	defer cursor.Close(ctx)
 
 	count := 0
+	var inactivatedIDs []string
+
 	for cursor.Next(ctx) {
 		if m.state.ShouldStop() {
 			log("Operação cancelada")
@@ -73,8 +75,18 @@ func (m *Manager) InactivateZeroProducts(log LogFunc) (int, error) {
 
 		if result.ModifiedCount > 0 {
 			count++
+			inactivatedIDs = append(inactivatedIDs, produtoRef.Hex())
 			log(fmt.Sprintf("Produto %s inativado", produtoRef.Hex()))
 		}
+	}
+
+	if m.rollback != nil && len(inactivatedIDs) > 0 {
+		m.rollback.RecordOperation(
+			OpInactivateProducts,
+			fmt.Sprintf("Inativou %d produtos zerados", count),
+			map[string]interface{}{"productIds": inactivatedIDs},
+			true,
+		)
 	}
 
 	return count, nil
@@ -97,6 +109,7 @@ func (m *Manager) ChangeTributationByNCM(ncms []string, tributationID string, lo
 
 	produtosEmpresa := m.conn.GetCollection(database.CollectionProdutosServicosEmpresa)
 	totalUpdates := 0
+	var changesBackup []map[string]interface{}
 
 	for _, ncm := range ncms {
 		if m.state.ShouldStop() {
@@ -109,8 +122,33 @@ func (m *Manager) ChangeTributationByNCM(ncms []string, tributationID string, lo
 			continue
 		}
 
+		ncmFilter := bson.M{"NcmNbs.Codigo": bson.M{"$regex": fmt.Sprintf("^%s.*", ncm), "$options": "i"}}
+
+		if m.rollback != nil {
+			cursor, err := produtosEmpresa.Find(ctx, ncmFilter)
+			if err == nil {
+				for cursor.Next(ctx) {
+					var doc bson.M
+					if err := cursor.Decode(&doc); err != nil {
+						continue
+					}
+					id, _ := doc["_id"].(primitive.ObjectID)
+					prevTribID := ""
+					if refOid, ok := doc["TributacaoEstadualReferencia"].(primitive.ObjectID); ok {
+						prevTribID = refOid.Hex()
+					}
+					changesBackup = append(changesBackup, map[string]interface{}{
+						"productId":  id.Hex(),
+						"prevTribId": prevTribID,
+						"isFederal":  false,
+					})
+				}
+				cursor.Close(ctx)
+			}
+		}
+
 		result, err := produtosEmpresa.UpdateMany(ctx,
-			bson.M{"NcmNbs.Codigo": bson.M{"$regex": fmt.Sprintf("^%s.*", ncm), "$options": "i"}},
+			ncmFilter,
 			bson.M{"$set": bson.M{"TributacaoEstadualReferencia": tribID}},
 		)
 		if err != nil {
@@ -124,6 +162,15 @@ func (m *Manager) ChangeTributationByNCM(ncms []string, tributationID string, lo
 		} else {
 			log(fmt.Sprintf("Nenhum produto encontrado para NCM %s", ncm))
 		}
+	}
+
+	if m.rollback != nil && len(changesBackup) > 0 {
+		m.rollback.RecordOperation(
+			OpChangeTributation,
+			fmt.Sprintf("Alterou tributação estadual de %d produtos", totalUpdates),
+			map[string]interface{}{"changes": changesBackup},
+			true,
+		)
 	}
 
 	return totalUpdates, nil
@@ -317,6 +364,30 @@ func (m *Manager) ChangeFederalTributationByNCM(ncms []string, tributationID str
 		},
 	}
 
+	var changesBackup []map[string]interface{}
+	if m.rollback != nil {
+		cursor, err := produtosEmpresa.Find(ctx, filter)
+		if err == nil {
+			for cursor.Next(ctx) {
+				var doc bson.M
+				if err := cursor.Decode(&doc); err != nil {
+					continue
+				}
+				id, _ := doc["_id"].(primitive.ObjectID)
+				prevTribID := ""
+				if refOid, ok := doc["TributacaoFederalReferencia"].(primitive.ObjectID); ok {
+					prevTribID = refOid.Hex()
+				}
+				changesBackup = append(changesBackup, map[string]interface{}{
+					"productId":  id.Hex(),
+					"prevTribId": prevTribID,
+					"isFederal":  true,
+				})
+			}
+			cursor.Close(ctx)
+		}
+	}
+
 	update := bson.M{
 		"$set": bson.M{
 			"TributacaoFederal":           tributacaoObj,
@@ -329,6 +400,15 @@ func (m *Manager) ChangeFederalTributationByNCM(ncms []string, tributationID str
 	result, err := produtosEmpresa.UpdateMany(ctx, filter, update)
 	if err != nil {
 		return fmt.Errorf("erro ao atualizar produtos: %w", err)
+	}
+
+	if m.rollback != nil && len(changesBackup) > 0 && result.ModifiedCount > 0 {
+		m.rollback.RecordOperation(
+			OpChangeTribFederal,
+			fmt.Sprintf("Alterou tributação federal de %d produtos", result.ModifiedCount),
+			map[string]interface{}{"changes": changesBackup},
+			true,
+		)
 	}
 
 	log(fmt.Sprintf("Sucesso! %d produtos atualizados.", result.ModifiedCount))

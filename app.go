@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
+	"time"
 
 	"BMongo-VIP/internal/database"
 	"BMongo-VIP/internal/operations"
@@ -56,7 +58,7 @@ func (a *App) startup(ctx context.Context) {
 
 	conn, err := database.Connect()
 	if err != nil {
-		a.addLog(fmt.Sprintf("⚠️ Erro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro: %s", err.Error()))
 		return
 	}
 
@@ -68,14 +70,14 @@ func (a *App) startup(ctx context.Context) {
 	validator := database.NewValidator(conn)
 	ok, msg := validator.ValidateConnection()
 	if ok {
-		a.addLog(fmt.Sprintf("✅ %s", msg))
+		a.addLog(fmt.Sprintf("%s", msg))
 
 		empty, _ := validator.IsDatabaseEmpty()
 		if empty {
-			a.addLog("⚠️ O banco de dados está vazio. Por favor, restaure uma base.")
+			a.addLog("O banco de dados está vazio. Por favor, restaure uma base.")
 		}
 	} else {
-		a.addLog(fmt.Sprintf("❌ %s", msg))
+		a.addLog(fmt.Sprintf("%s", msg))
 	}
 }
 
@@ -115,11 +117,11 @@ func (a *App) CheckConnection() bool {
 }
 
 func (a *App) RetryConnection() error {
-	a.addLog("🔄 Tentando reconectar ao banco de dados...")
+	a.addLog("Tentando reconectar ao banco de dados...")
 
 	conn, err := database.Connect()
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Falha na reconexão: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Falha na reconexão: %s", err.Error()))
 		return err
 	}
 
@@ -135,16 +137,16 @@ func (a *App) RetryConnection() error {
 	validator := database.NewValidator(conn)
 	ok, msg := validator.ValidateConnection()
 	if ok {
-		a.addLog(fmt.Sprintf("✅ %s", msg))
+		a.addLog(fmt.Sprintf("%s", msg))
 
 		empty, _ := validator.IsDatabaseEmpty()
 		if empty {
-			a.addLog("⚠️ O banco de dados está vazio. Por favor, restaure uma base.")
+			a.addLog("O banco de dados está vazio. Por favor, restaure uma base.")
 		}
 		return nil
 	}
 
-	a.addLog(fmt.Sprintf("❌ %s", msg))
+	a.addLog(fmt.Sprintf("%s", msg))
 	return fmt.Errorf(msg)
 }
 
@@ -153,18 +155,18 @@ func (a *App) InactivateZeroProducts() (int, error) {
 		return 0, fmt.Errorf("operações não inicializadas")
 	}
 
-	a.addLog("🔄 Buscando estoques zerados ou negativos...")
+	a.addLog("Buscando estoques zerados ou negativos...")
 
 	count, err := a.operations.InactivateZeroProducts(func(msg string) {
 		a.addLog(msg)
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro: %s", err.Error()))
 		return 0, err
 	}
 
-	a.addLog(fmt.Sprintf("✅ %d produtos inativados", count))
+	a.addLog(fmt.Sprintf("%d produtos inativados", count))
 	return count, nil
 }
 
@@ -173,18 +175,18 @@ func (a *App) ChangeTributationByNCM(ncms []string, tributationID string) (int, 
 		return 0, fmt.Errorf("operações não inicializadas")
 	}
 
-	a.addLog(fmt.Sprintf("🔄 Alterando tributação para NCMs: %v", ncms))
+	a.addLog(fmt.Sprintf("Alterando tributação para NCMs: %v", ncms))
 
 	count, err := a.operations.ChangeTributationByNCM(ncms, tributationID, func(msg string) {
 		a.addLog(msg)
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro: %s", err.Error()))
 		return 0, err
 	}
 
-	a.addLog(fmt.Sprintf("✅ %d produtos atualizados", count))
+	a.addLog(fmt.Sprintf("%d produtos atualizados", count))
 	return count, nil
 }
 
@@ -205,13 +207,13 @@ func (a *App) ChangeFederalTributationByNCM(ncms []string, tribID string) int {
 		return 0
 	}
 
-	a.addLog(fmt.Sprintf("🔄 Iniciando alteração de Tributação FEDERAL para NCMs: %v", ncms))
+	a.addLog(fmt.Sprintf("Iniciando alteração de Tributação FEDERAL para NCMs: %v", ncms))
 	err := a.operations.ChangeFederalTributationByNCM(ncms, tribID, func(msg string) {
 		a.addLog(msg)
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro: %s", err.Error()))
 		return 0
 	}
 	return 1
@@ -241,13 +243,13 @@ func (a *App) ChangeIbsCbsTributationByNCM(ncms []string, tribID string) int {
 		return 0
 	}
 
-	a.addLog(fmt.Sprintf("🔄 Iniciando alteração de Tributação IBS/CBS para NCMs: %v", ncms))
+	a.addLog(fmt.Sprintf("Iniciando alteração de Tributação IBS/CBS para NCMs: %v", ncms))
 	err := a.operations.ChangeIbsCbsTributationByNCM(ncms, tribID, func(msg string) {
 		a.addLog(msg)
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro: %s", err.Error()))
 		return 0
 	}
 	return 1
@@ -258,18 +260,18 @@ func (a *App) EnableMEI() (int, error) {
 		return 0, fmt.Errorf("operações não inicializadas")
 	}
 
-	a.addLog("🔄 Habilitando ajuste de estoque MEI...")
+	a.addLog("Habilitando ajuste de estoque MEI...")
 
 	count, err := a.operations.EnableMEI(func(msg string) {
 		a.addLog(msg)
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro: %s", err.Error()))
 		return 0, err
 	}
 
-	a.addLog(fmt.Sprintf("✅ %d referências alteradas", count))
+	a.addLog(fmt.Sprintf("%d referências alteradas", count))
 	return count, nil
 }
 
@@ -278,18 +280,18 @@ func (a *App) CleanMovements() error {
 		return fmt.Errorf("operações não inicializadas")
 	}
 
-	a.addLog("🔄 Iniciando limpeza de movimentações...")
+	a.addLog("Iniciando limpeza de movimentações...")
 
 	err := a.operations.CleanMovements(func(msg string) {
 		a.addLog(msg)
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro: %s", err.Error()))
 		return err
 	}
 
-	a.addLog("✅ Limpeza de movimentações concluída")
+	a.addLog("Limpeza de movimentações concluída")
 	return nil
 }
 
@@ -298,18 +300,18 @@ func (a *App) FindObjectIdInDatabase(searchID string) ([]map[string]string, erro
 		return nil, fmt.Errorf("operações não inicializadas")
 	}
 
-	a.addLog(fmt.Sprintf("🔍 Buscando ObjectId %s em todas as coleções...", searchID))
+	a.addLog(fmt.Sprintf("Buscando ObjectId %s em todas as coleções...", searchID))
 
 	results, err := a.operations.FindObjectIdInDatabase(searchID, func(msg string) {
 		a.addLog(msg)
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro: %s", err.Error()))
 		return nil, err
 	}
 
-	a.addLog(fmt.Sprintf("✅ Busca concluída. Encontradas %d referências", len(results)))
+	a.addLog(fmt.Sprintf("Busca concluída. Encontradas %d referências", len(results)))
 	return results, nil
 }
 
@@ -318,18 +320,18 @@ func (a *App) CleanDatabase() error {
 		return fmt.Errorf("operações não inicializadas")
 	}
 
-	a.addLog("🧹 Iniciando limpeza da base de dados...")
+	a.addLog("Iniciando limpeza da base de dados...")
 
 	err := a.operations.CleanDatabase(func(msg string) {
 		a.addLog(msg)
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro: %s", err.Error()))
 		return err
 	}
 
-	a.addLog("✅ Limpeza de base concluída!")
+	a.addLog("Limpeza de base concluída!")
 	return nil
 }
 
@@ -338,18 +340,18 @@ func (a *App) CreateNewDatabase() error {
 		return fmt.Errorf("operações não inicializadas")
 	}
 
-	a.addLog("🗑️ Iniciando criação de nova base (ZERO)...")
+	a.addLog("Iniciando criação de nova base (ZERO)...")
 
 	err := a.operations.CreateNewDatabase(func(msg string) {
 		a.addLog(msg)
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro: %s", err.Error()))
 		return err
 	}
 
-	a.addLog("✅ Nova base criada com sucesso!")
+	a.addLog("Nova base criada com sucesso!")
 	return nil
 }
 
@@ -362,7 +364,7 @@ func (a *App) CleanDigisatRegistry() error {
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro no registro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro no registro: %s", err.Error()))
 		return err
 	}
 
@@ -372,7 +374,7 @@ func (a *App) CleanDigisatRegistry() error {
 func (a *App) CancelOperation() {
 	if a.operations != nil {
 		a.operations.CancelAll()
-		a.addLog("⏹️ Operação cancelada")
+		a.addLog("Operação cancelada")
 	}
 }
 
@@ -400,18 +402,18 @@ func (a *App) UndoOperation(opID string) error {
 		return fmt.Errorf("rollback não inicializado")
 	}
 
-	a.addLog(fmt.Sprintf("🔄 Revertendo operação %s...", opID))
+	a.addLog(fmt.Sprintf("Revertendo operação %s...", opID))
 
 	err := a.rollback.UndoOperation(opID, func(msg string) {
 		a.addLog(msg)
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro no rollback: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro no rollback: %s", err.Error()))
 		return err
 	}
 
-	a.addLog("✅ Operação revertida com sucesso!")
+	a.addLog("Operação revertida com sucesso!")
 	return nil
 }
 
@@ -610,6 +612,43 @@ func (a *App) GenerateInventoryReport(cutoffDate string, targetValue float64, fo
 		return nil, fmt.Errorf("operações não inicializadas")
 	}
 
+	format = strings.ToUpper(format)
+
+	parsedDate, err := time.Parse("02/01/2006", cutoffDate)
+	if err != nil {
+		parsedDate, _ = time.Parse("2006-01-02", cutoffDate)
+	}
+	defaultName := fmt.Sprintf("Inventario_%s_%s", strings.ReplaceAll(companyName, " ", "_"), parsedDate.Format("20060102"))
+
+	var filters []runtime.FileFilter
+	if format == "PDF" {
+		filters = []runtime.FileFilter{{DisplayName: "Arquivos PDF (*.pdf)", Pattern: "*.pdf"}}
+		defaultName += ".pdf"
+	} else if format == "CSV" {
+		filters = []runtime.FileFilter{{DisplayName: "Arquivos CSV (*.csv)", Pattern: "*.csv"}}
+		defaultName += ".csv"
+	} else if format == "EXCEL" || format == "XLSX" {
+		filters = []runtime.FileFilter{{DisplayName: "Arquivos Excel (*.xlsx)", Pattern: "*.xlsx"}}
+		defaultName += ".xlsx"
+	} else {
+		filters = []runtime.FileFilter{
+			{DisplayName: "Todos os Arquivos (*.*)", Pattern: "*.*"},
+		}
+	}
+
+	// Select Output File (Save As)
+	selectedPath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           "Salvar Relatório Como...",
+		DefaultFilename: defaultName,
+		Filters:         filters,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("erro ao selecionar arquivo: %v", err)
+	}
+	if selectedPath == "" {
+		return nil, fmt.Errorf("salvamento cancelado")
+	}
+
 	params := operations.InventoryReportParams{
 		CutoffDate:  cutoffDate,
 		TargetValue: targetValue,
@@ -620,7 +659,7 @@ func (a *App) GenerateInventoryReport(cutoffDate string, targetValue float64, fo
 		SheetNumber: sheetNumber,
 	}
 
-	result, err := a.operations.GenerateInventoryReport(params, format, func(msg string) {
+	result, err := a.operations.GenerateInventoryReport(params, selectedPath, format, func(msg string) {
 		a.addLog(msg)
 	})
 	if err != nil {
@@ -666,22 +705,22 @@ func (a *App) UpdateEmitenteFromFile(filePath string) error {
 		return fmt.Errorf("operações não inicializadas")
 	}
 
-	a.addLog(fmt.Sprintf("📂 Lendo arquivo: %s", filePath))
+	a.addLog(fmt.Sprintf("Lendo arquivo: %s", filePath))
 
 	info, err := operations.ParseInfoDat(filePath)
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro ao ler arquivo: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro ao ler arquivo: %s", err.Error()))
 		return err
 	}
 
-	a.addLog(fmt.Sprintf("📋 Dados lidos - CNPJ: %s, Razão: %s", info.Cnpj, info.RazaoSocial))
+	a.addLog(fmt.Sprintf("Dados lidos - CNPJ: %s, Razão: %s", info.Cnpj, info.RazaoSocial))
 
 	err = a.operations.UpdateEmitente(info, filePath, func(msg string) {
 		a.addLog(msg)
 	})
 
 	if err != nil {
-		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		a.addLog(fmt.Sprintf("Erro: %s", err.Error()))
 		return err
 	}
 

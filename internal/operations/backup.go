@@ -117,7 +117,8 @@ func (m *Manager) RestoreDatabase(backupPath string, dropExisting bool, log LogF
 	if strings.HasSuffix(strings.ToLower(backupPath), ".zip") {
 		log(fmt.Sprintf("📦 Detectado arquivo ZIP: %s", filepath.Base(backupPath)))
 
-		tempDir, err := os.MkdirTemp("", "digisat_restore_")
+		var err error
+		tempDir, err = os.MkdirTemp("", "digisat_restore_")
 		if err != nil {
 			return fmt.Errorf("erro ao criar pasta temporária: %w", err)
 		}

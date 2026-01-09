@@ -179,4 +179,7 @@ const (
 	CollectionSequenciasMovimentacoes = "SequenciasMovimentacoes"
 	CollectionUsuarios                = "Usuarios"
 	CollectionTokens                  = "Tokens"
+	CollectionEstoquesQuantidade      = "EstoquesQuantidade"
+	CollectionPrecos                  = "Precos"
+	CollectionItensPreco              = "ItensPreco"
 )

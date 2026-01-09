@@ -3,6 +3,8 @@
 import {operations} from '../models';
 import {windows} from '../models';
 
+export function AdjustInventoryRebalance(arg1:number,arg2:boolean,arg3:string):Promise<Record<string, any>>;
+
 export function AllowSecurityExclusions():Promise<void>;
 
 export function BackupDatabase(arg1:string):Promise<operations.BackupResult>;
@@ -45,6 +47,8 @@ export function FilterProducts(arg1:Record<string, any>):Promise<Record<string, 
 
 export function FindObjectIdInDatabase(arg1:string):Promise<Array<Record<string, string>>>;
 
+export function GenerateInventoryReport(arg1:string,arg2:number,arg3:string,arg4:string,arg5:string,arg6:string,arg7:number,arg8:number):Promise<Record<string, any>>;
+
 export function GetDigisatProcesses():Promise<Array<windows.DigiProcess>>;
 
 export function GetDigisatServices():Promise<Array<windows.DigiService>>;
@@ -52,6 +56,8 @@ export function GetDigisatServices():Promise<Array<windows.DigiService>>;
 export function GetFederalTributations():Promise<Array<Record<string, any>>>;
 
 export function GetIbsCbsTributations():Promise<Array<Record<string, any>>>;
+
+export function GetInventoryValue(arg1:string):Promise<Record<string, any>>;
 
 export function GetInvoiceByKey(arg1:string,arg2:string):Promise<operations.InvoiceDetails>;
 
@@ -88,6 +94,8 @@ export function RepairMongoDBOnline():Promise<void>;
 export function RestoreDatabase(arg1:string,arg2:boolean):Promise<void>;
 
 export function RetryConnection():Promise<void>;
+
+export function SanitizePrices(arg1:number):Promise<number>;
 
 export function SelectBackupFile(arg1:string):Promise<string>;
 

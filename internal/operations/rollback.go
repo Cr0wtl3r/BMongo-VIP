@@ -25,6 +25,7 @@ const (
 	OpChangeInvoiceKey    OperationType = "ChangeInvoiceKey"
 	OpChangeInvoiceStatus OperationType = "ChangeInvoiceStatus"
 	OpEnableMEI           OperationType = "EnableMEI"
+	OpAdjustInventory     OperationType = "AdjustInventory"
 )
 
 type OperationRecord struct {
@@ -132,6 +133,8 @@ func (rm *RollbackManager) UndoOperation(opID string, log LogFunc) error {
 		err = rm.undoInvoiceStatusChange(ctx, target.Details, log)
 	case OpEnableMEI:
 		err = rm.undoEnableMEI(ctx, target.Details, log)
+	case OpAdjustInventory:
+		err = rm.undoAdjustInventory(ctx, target.Details, log)
 	default:
 		return fmt.Errorf("tipo de operação não suportado para rollback: %s", target.Type)
 	}
@@ -557,6 +560,52 @@ func (rm *RollbackManager) undoEnableMEI(ctx context.Context, details map[string
 	}
 
 	log(fmt.Sprintf("✅ MEI revertido para %d emitentes", count))
+	return nil
+}
+
+func (rm *RollbackManager) undoAdjustInventory(ctx context.Context, details map[string]interface{}, log LogFunc) error {
+	stocks, ok := details["stocks"].([]map[string]interface{})
+	if !ok {
+		if rawStocks, ok := details["stocks"].([]interface{}); ok {
+			stocks = make([]map[string]interface{}, len(rawStocks))
+			for i, s := range rawStocks {
+				stocks[i], _ = s.(map[string]interface{})
+			}
+		}
+	}
+
+	if len(stocks) == 0 {
+		return fmt.Errorf("nenhum estoque para reverter")
+	}
+
+	log(fmt.Sprintf("🔄 Restaurando %d estoques do ajuste de inventário...", len(stocks)))
+
+	estoques := rm.conn.GetCollection(database.CollectionEstoques)
+	count := 0
+
+	for _, stock := range stocks {
+		idHex, _ := stock["estoqueId"].(string)
+		prevQty, _ := stock["prevQuantity"].(float64)
+
+		if idHex == "" {
+			continue
+		}
+
+		oid, err := primitive.ObjectIDFromHex(idHex)
+		if err != nil {
+			continue
+		}
+
+		result, err := estoques.UpdateOne(ctx,
+			bson.M{"_id": oid},
+			bson.M{"$set": bson.M{"Quantidades.0.Quantidade": prevQty}},
+		)
+		if err == nil && result.ModifiedCount > 0 {
+			count++
+		}
+	}
+
+	log(fmt.Sprintf("✅ %d estoques restaurados do ajuste de inventário", count))
 	return nil
 }
 

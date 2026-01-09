@@ -556,6 +556,86 @@ func (a *App) CleanDatabaseByDate(beforeDate string) (int, error) {
 	})
 }
 
+func (a *App) GetInventoryValue(cutoffDate string) (map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+	result, err := a.operations.GetInventoryValue(func(msg string) {
+		a.addLog(msg)
+	}, cutoffDate)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"currentValue":   result.CurrentValue,
+		"productCount":   result.ProductCount,
+		"lowCostCount":   result.LowCostCount,
+		"lowCostPercent": result.LowCostPercent,
+		"message":        result.Message,
+	}, nil
+}
+
+func (a *App) SanitizePrices(percent float64) (int, error) {
+	if a.operations == nil {
+		return 0, fmt.Errorf("operações não inicializadas")
+	}
+	return a.operations.SanitizePrices(percent, func(msg string) {
+		a.addLog(msg)
+	})
+}
+
+func (a *App) AdjustInventoryRebalance(targetValue float64, resetToZero bool, cutoffDate string) (map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+	result, err := a.operations.AdjustInventoryRebalance(targetValue, resetToZero, func(msg string) {
+		a.addLog(msg)
+	}, cutoffDate)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"adjustedCount": result.AdjustedCount,
+		"zeroedCount":   result.ZeroedCount,
+		"previousValue": result.PreviousValue,
+		"newValue":      result.NewValue,
+		"targetValue":   result.TargetValue,
+		"maxAdjustment": result.MaxAdjustment,
+		"message":       result.Message,
+	}, nil
+}
+
+func (a *App) GenerateInventoryReport(cutoffDate string, targetValue float64, format string, companyName string, companyIE string, companyCNPJ string, bookNumber int, sheetNumber int) (map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+
+	params := operations.InventoryReportParams{
+		CutoffDate:  cutoffDate,
+		TargetValue: targetValue,
+		CompanyName: companyName,
+		CompanyIE:   companyIE,
+		CompanyCNPJ: companyCNPJ,
+		BookNumber:  bookNumber,
+		SheetNumber: sheetNumber,
+	}
+
+	result, err := a.operations.GenerateInventoryReport(params, format, func(msg string) {
+		a.addLog(msg)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	totalFloat, _ := result.TotalValue.Float64()
+	return map[string]interface{}{
+		"totalItems": result.TotalItems,
+		"totalValue": totalFloat,
+		"outputPath": result.OutputPath,
+		"message":    result.Message,
+	}, nil
+}
+
 func (a *App) GetTotalProductCount() (int64, error) {
 	if a.db == nil {
 		return 0, nil
@@ -623,9 +703,10 @@ func (a *App) ListEmitentes() ([]map[string]interface{}, error) {
 	result := make([]map[string]interface{}, len(emitentes))
 	for i, e := range emitentes {
 		result[i] = map[string]interface{}{
-			"id":   e.ID,
-			"nome": e.Nome,
-			"cnpj": e.Cnpj,
+			"id":                e.ID,
+			"nome":              e.Nome,
+			"cnpj":              e.Cnpj,
+			"inscricaoEstadual": e.InscricaoEstadual,
 		}
 	}
 	return result, nil

@@ -27,6 +27,7 @@ export function BackupModal({ show, onClose, showSuccess, showError }: BackupMod
               value={backupDir}
               onChange={e => setBackupDir(e.target.value)}
               placeholder="Clique em Selecionar..."
+              className="form-input"
             />
             <button className="file-picker-btn" onClick={() => {
               SelectDirectory("Selecione pasta para backup").then((path: string) => {

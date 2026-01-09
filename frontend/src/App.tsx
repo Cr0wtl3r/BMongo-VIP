@@ -39,6 +39,9 @@ import { RollbackModal } from './components/common/RollbackModal';
 import { SearchModal } from './components/common/SearchModal';
 import { DateModal } from './components/common/DateModal';
 
+import { InventoryModal } from './components/common/InventoryModal';
+import { InventoryReportModal } from './components/common/InventoryReportModal';
+
 import { ProductFilterModal } from './components/products/ProductFilterModal';
 import { NcmModal } from './components/products/NcmModal';
 
@@ -74,6 +77,8 @@ function App() {
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showRollbackModal, setShowRollbackModal] = useState(false);
+  const [showInventoryModal, setShowInventoryModal] = useState(false);
+  const [showInventoryReportModal, setShowInventoryReportModal] = useState(false);
 
 
   const [totalInDatabase, setTotalInDatabase] = useState(0);
@@ -200,6 +205,12 @@ function App() {
         break;
       case 'limpar_por_data':
         setShowDateModal(true);
+        break;
+      case 'ajustar_inventario':
+        setShowInventoryModal(true);
+        break;
+      case 'gerar_inventario':
+        setShowInventoryReportModal(true);
         break;
 
       case 'ajustar_emitente':
@@ -353,6 +364,20 @@ function App() {
       <DateModal
         show={showDateModal}
         onClose={() => setShowDateModal(false)}
+        showSuccess={showSuccess}
+        showError={showError}
+      />
+
+      <InventoryModal
+        show={showInventoryModal}
+        onClose={() => setShowInventoryModal(false)}
+        showSuccess={showSuccess}
+        showError={showError}
+      />
+
+      <InventoryReportModal
+        show={showInventoryReportModal}
+        onClose={() => setShowInventoryReportModal(false)}
         showSuccess={showSuccess}
         showError={showError}
       />

@@ -69,6 +69,11 @@ export const modules = [
     name: "📈 Estoque / Preços",
     items: [
       {
+        id: "gerar_inventario",
+        label: "Gerar Inventário",
+        desc: "Gera relatório P7 em XLSX/CSV com valor alvo",
+      },
+      {
         id: "zerar_estoque",
         label: "Zerar TODO Estoque",
         desc: "Zera quantidade de todos os produtos",

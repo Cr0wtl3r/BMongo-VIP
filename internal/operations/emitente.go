@@ -51,9 +51,10 @@ type UFInfo struct {
 }
 
 type EmitenteBasic struct {
-	ID   string `json:"id"`
-	Nome string `json:"nome"`
-	Cnpj string `json:"cnpj"`
+	ID                string `json:"id"`
+	Nome              string `json:"nome"`
+	Cnpj              string `json:"cnpj"`
+	InscricaoEstadual string `json:"inscricaoEstadual"`
 }
 
 func ParseInfoDat(filePath string) (*EmitenteInfo, error) {
@@ -333,10 +334,27 @@ func (m *Manager) ListEmitentes(log LogFunc) ([]EmitenteBasic, error) {
 		nome, _ := doc["Nome"].(string)
 		cnpj, _ := doc["Cnpj"].(string)
 
+		ie := ""
+		if carteira, ok := doc["Carteira"].(bson.M); ok {
+			if ieObj, ok := carteira["Ie"].(bson.M); ok {
+				if num, ok := ieObj["Numero"].(string); ok {
+					ie = num
+				}
+			}
+		}
+
+		if ie == "" {
+			// Tentar buscar direto no nível raiz se existir (para compatibilidade)
+			if ieRoot, ok := doc["InscricaoEstadual"].(string); ok {
+				ie = ieRoot
+			}
+		}
+
 		emitentes = append(emitentes, EmitenteBasic{
-			ID:   id.Hex(),
-			Nome: nome,
-			Cnpj: cnpj,
+			ID:                id.Hex(),
+			Nome:              nome,
+			Cnpj:              cnpj,
+			InscricaoEstadual: ie,
 		})
 	}
 

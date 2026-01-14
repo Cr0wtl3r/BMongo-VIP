@@ -1,5 +1,7 @@
-import { useState, Dispatch, SetStateAction } from 'react';
+import { useState } from 'react';
 import { FilterProducts, BulkActivateProducts } from '../../../wailsjs/go/main/App';
+import { PriceAdjustmentModal } from './PriceAdjustmentModal';
+import { NCMChangeModal } from './NCMChangeModal';
 
 interface ProductFilterModalProps {
   show: boolean;
@@ -19,6 +21,8 @@ export function ProductFilterModal({ show, onClose, totalInDatabase }: ProductFi
     costPriceOp: '', costPriceVal: 0,
     salePriceOp: '', salePriceVal: 0
   });
+  const [showPriceModal, setShowPriceModal] = useState(false);
+  const [showNCMModal, setShowNCMModal] = useState(false);
 
   const toggleSelectAll = () => {
     if (selectedIds.length === filterResults.length) {
@@ -201,9 +205,32 @@ export function ProductFilterModal({ show, onClose, totalInDatabase }: ProductFi
           </div>
         )}
 
+        {/* Secondary Modals */}
+        <PriceAdjustmentModal 
+          show={showPriceModal} 
+          onClose={() => setShowPriceModal(false)} 
+        />
+        <NCMChangeModal
+          show={showNCMModal}
+          onClose={() => setShowNCMModal(false)}
+        />
+
         <div className="modal-actions">
           <button onClick={onClose}>Fechar</button>
-          <span></span>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+            <button 
+              className="secondary" 
+              onClick={() => setShowNCMModal(true)}
+            >
+              📋 Alterar NCM
+            </button>
+            <button 
+              className="secondary" 
+              onClick={() => setShowPriceModal(true)}
+            >
+              💰 Ajuste de Preços
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -42,11 +42,12 @@ import { DateModal } from './components/common/DateModal';
 import { InventoryModal } from './components/common/InventoryModal';
 import { InventoryReportModal } from './components/common/InventoryReportModal';
 
-import { ProductFilterModal } from './components/products/ProductFilterModal';
+import { AdvancedProductManager } from './components/products/AdvancedProductManager';
 import { NcmModal } from './components/products/NcmModal';
 
 import { InvoiceKeyModal } from './components/invoices/InvoiceKeyModal';
 import { InvoiceStatusModal } from './components/invoices/InvoiceStatusModal';
+import { InvoiceManagerModal } from './components/invoices/InvoiceManager';
 
 import { BackupModal } from './components/backup/BackupModal';
 import { RestoreModal } from './components/backup/RestoreModal';
@@ -74,6 +75,7 @@ function App() {
   const [showEmitentesListModal, setShowEmitentesListModal] = useState(false);
   const [showInvoiceKeyModal, setShowInvoiceKeyModal] = useState(false);
   const [showInvoiceStatusModal, setShowInvoiceStatusModal] = useState(false);
+  const [showInvoiceManagerModal, setShowInvoiceManagerModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showRollbackModal, setShowRollbackModal] = useState(false);
@@ -237,6 +239,10 @@ function App() {
         }).catch(console.error);
         break;
 
+      case 'notas_manuais':
+        setShowInvoiceManagerModal(true);
+        break;
+
       case 'backup':
         setShowBackupModal(true);
         break;
@@ -350,7 +356,7 @@ function App() {
         onClose={() => setShowSearchModal(false)}
       />
 
-      <ProductFilterModal
+      <AdvancedProductManager
         show={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         totalInDatabase={totalInDatabase}
@@ -459,6 +465,13 @@ function App() {
         message={errorToast.message}
         type="error"
         onClose={() => setErrorToast({...errorToast, show: false})}
+      />
+      
+      <InvoiceManagerModal
+        show={showInvoiceManagerModal}
+        onClose={() => setShowInvoiceManagerModal(false)}
+        showSuccess={showSuccess}
+        showError={showError}
       />
 
     </div>

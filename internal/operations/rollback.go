@@ -26,6 +26,13 @@ const (
 	OpChangeInvoiceStatus OperationType = "ChangeInvoiceStatus"
 	OpEnableMEI           OperationType = "EnableMEI"
 	OpAdjustInventory     OperationType = "AdjustInventory"
+	// New Phase 1 operations
+	OpAdjustPrices       OperationType = "AdjustPrices"
+	OpChangeNCM          OperationType = "ChangeNCM"
+	OpChangeBrand        OperationType = "ChangeBrand"
+	OpChangeItemType     OperationType = "ChangeItemType"
+	OpChangeProductType  OperationType = "ChangeProductType"
+	OpClearCodigoTribMun OperationType = "ClearCodigoTribMun"
 )
 
 type OperationRecord struct {
@@ -135,6 +142,12 @@ func (rm *RollbackManager) UndoOperation(opID string, log LogFunc) error {
 		err = rm.undoEnableMEI(ctx, target.Details, log)
 	case OpAdjustInventory:
 		err = rm.undoAdjustInventory(ctx, target.Details, log)
+	case OpAdjustPrices:
+		err = rm.undoAdjustPrices(ctx, target.Details, log)
+	case OpChangeNCM:
+		err = rm.undoChangeNCM(ctx, target.Details, log)
+	case OpChangeBrand:
+		err = rm.undoChangeBrand(ctx, target.Details, log)
 	default:
 		return fmt.Errorf("tipo de operação não suportado para rollback: %s", target.Type)
 	}
@@ -606,6 +619,153 @@ func (rm *RollbackManager) undoAdjustInventory(ctx context.Context, details map[
 	}
 
 	log(fmt.Sprintf("✅ %d estoques restaurados do ajuste de inventário", count))
+	return nil
+}
+
+func (rm *RollbackManager) undoAdjustPrices(ctx context.Context, details map[string]interface{}, log LogFunc) error {
+	products, ok := details["products"].([]map[string]interface{})
+	if !ok {
+		if rawProducts, ok := details["products"].([]interface{}); ok {
+			products = make([]map[string]interface{}, len(rawProducts))
+			for i, p := range rawProducts {
+				products[i], _ = p.(map[string]interface{})
+			}
+		}
+	}
+
+	if len(products) == 0 {
+		return fmt.Errorf("nenhum produto para reverter")
+	}
+
+	log(fmt.Sprintf("🔄 Restaurando preços de %d produtos...", len(products)))
+
+	produtosEmpresa := rm.conn.GetCollection(database.CollectionProdutosServicosEmpresa)
+	count := 0
+
+	for _, prod := range products {
+		idHex, _ := prod["id"].(string)
+		prevCost, _ := prod["prevCost"].(float64)
+		prevSale, _ := prod["prevSale"].(float64)
+
+		if idHex == "" {
+			continue
+		}
+
+		oid, err := primitive.ObjectIDFromHex(idHex)
+		if err != nil {
+			continue
+		}
+
+		result, err := produtosEmpresa.UpdateOne(ctx,
+			bson.M{"_id": oid},
+			bson.M{"$set": bson.M{
+				"PrecosCustos.0.Valor": prevCost,
+				"PrecosVendas.0.Valor": prevSale,
+			}},
+		)
+		if err == nil && result.ModifiedCount > 0 {
+			count++
+		}
+	}
+
+	log(fmt.Sprintf("✅ Preços restaurados para %d produtos", count))
+	return nil
+}
+
+func (rm *RollbackManager) undoChangeNCM(ctx context.Context, details map[string]interface{}, log LogFunc) error {
+	products, ok := details["products"].([]map[string]interface{})
+	if !ok {
+		if rawProducts, ok := details["products"].([]interface{}); ok {
+			products = make([]map[string]interface{}, len(rawProducts))
+			for i, p := range rawProducts {
+				products[i], _ = p.(map[string]interface{})
+			}
+		}
+	}
+
+	if len(products) == 0 {
+		return fmt.Errorf("nenhum produto para reverter")
+	}
+
+	log(fmt.Sprintf("🔄 Restaurando NCM de %d produtos...", len(products)))
+
+	produtosEmpresa := rm.conn.GetCollection(database.CollectionProdutosServicosEmpresa)
+	count := 0
+
+	for _, prod := range products {
+		idHex, _ := prod["id"].(string)
+		prevNCM, _ := prod["prevNCM"].(string)
+
+		if idHex == "" {
+			continue
+		}
+
+		oid, err := primitive.ObjectIDFromHex(idHex)
+		if err != nil {
+			continue
+		}
+
+		result, err := produtosEmpresa.UpdateOne(ctx,
+			bson.M{"_id": oid},
+			bson.M{"$set": bson.M{"NcmNbs.Codigo": prevNCM}},
+		)
+		if err == nil && result.ModifiedCount > 0 {
+			count++
+		}
+	}
+
+	log(fmt.Sprintf("✅ NCM restaurado para %d produtos", count))
+	return nil
+}
+
+func (rm *RollbackManager) undoChangeBrand(ctx context.Context, details map[string]interface{}, log LogFunc) error {
+	products, ok := details["products"].([]map[string]interface{})
+	if !ok {
+		if rawProducts, ok := details["products"].([]interface{}); ok {
+			products = make([]map[string]interface{}, len(rawProducts))
+			for i, p := range rawProducts {
+				products[i], _ = p.(map[string]interface{})
+			}
+		}
+	}
+
+	if len(products) == 0 {
+		return fmt.Errorf("nenhum produto para reverter")
+	}
+
+	log(fmt.Sprintf("🔄 Restaurando marca de %d produtos...", len(products)))
+
+	produtosServicos := rm.conn.GetCollection(database.CollectionProdutosServicos)
+	count := 0
+
+	for _, prod := range products {
+		idHex, _ := prod["id"].(string)
+		prevBrandID, _ := prod["prevBrandId"].(string)
+
+		if idHex == "" {
+			continue
+		}
+
+		oid, err := primitive.ObjectIDFromHex(idHex)
+		if err != nil {
+			continue
+		}
+
+		var update bson.M
+		if prevBrandID != "" {
+			brandOID, _ := primitive.ObjectIDFromHex(prevBrandID)
+			update = bson.M{"$set": bson.M{"MarcaReferencia": brandOID}}
+		} else {
+			update = bson.M{"$unset": bson.M{"MarcaReferencia": 1, "Marca": 1}}
+		}
+
+		result, err := produtosServicos.UpdateOne(ctx, bson.M{"_id": oid}, update)
+		if err == nil && result.ModifiedCount > 0 {
+			count++
+		}
+	}
+
+	log(fmt.Sprintf("✅ Marca restaurada para %d produtos", count))
 	return nil
 }
 

@@ -5,7 +5,11 @@ import {windows} from '../models';
 
 export function AdjustInventoryRebalance(arg1:number,arg2:boolean,arg3:string):Promise<Record<string, any>>;
 
+export function AdjustPricesByPercent(arg1:Record<string, any>,arg2:number,arg3:string):Promise<Record<string, any>>;
+
 export function AllowSecurityExclusions():Promise<void>;
+
+export function ApplyMarkup(arg1:Record<string, any>,arg2:number):Promise<Record<string, any>>;
 
 export function BackupDatabase(arg1:string):Promise<operations.BackupResult>;
 
@@ -23,6 +27,8 @@ export function ChangeInvoiceKey(arg1:string,arg2:string,arg3:string):Promise<nu
 
 export function ChangeInvoiceStatus(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 
+export function ChangeNCMByFilter(arg1:string,arg2:string):Promise<Record<string, any>>;
+
 export function ChangeTributationByNCM(arg1:Array<string>,arg2:string):Promise<number>;
 
 export function CheckConnection():Promise<boolean>;
@@ -37,11 +43,19 @@ export function CleanMovements():Promise<void>;
 
 export function ClearLogs():Promise<void>;
 
+export function ConfirmInvoiceNumber(arg1:string,arg2:number):Promise<void>;
+
+export function CountFilteredProducts(arg1:Record<string, any>):Promise<number>;
+
 export function CreateNewDatabase():Promise<void>;
 
 export function DeleteEmitente(arg1:string):Promise<void>;
 
 export function EnableMEI():Promise<number>;
+
+export function ExecuteBulkOperation(arg1:string,arg2:Array<string>,arg3:Array<string>,arg4:boolean,arg5:Record<string, any>,arg6:any):Promise<Record<string, any>>;
+
+export function ExportInvoiceToPDF(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function FilterProducts(arg1:Record<string, any>):Promise<Record<string, any>>;
 
@@ -49,13 +63,21 @@ export function FindObjectIdInDatabase(arg1:string):Promise<Array<Record<string,
 
 export function GenerateInventoryReport(arg1:string,arg2:number,arg3:string,arg4:string,arg5:string,arg6:string,arg7:number,arg8:number):Promise<Record<string, any>>;
 
+export function GetAllFilteredProductIDs(arg1:Record<string, any>):Promise<Record<string, any>>;
+
+export function GetBrands():Promise<Array<Record<string, any>>>;
+
 export function GetDigisatProcesses():Promise<Array<windows.DigiProcess>>;
 
 export function GetDigisatServices():Promise<Array<windows.DigiService>>;
 
+export function GetDistinctNCMs():Promise<Array<Record<string, any>>>;
+
 export function GetFederalTributations():Promise<Array<Record<string, any>>>;
 
 export function GetIbsCbsTributations():Promise<Array<Record<string, any>>>;
+
+export function GetInvalidNCMs(arg1:number):Promise<Record<string, any>>;
 
 export function GetInventoryValue(arg1:string):Promise<Record<string, any>>;
 
@@ -63,11 +85,23 @@ export function GetInvoiceByKey(arg1:string,arg2:string):Promise<operations.Invo
 
 export function GetInvoiceByNumber(arg1:string,arg2:string,arg3:string):Promise<operations.InvoiceDetails>;
 
+export function GetInvoiceData(arg1:string):Promise<operations.InvoiceData>;
+
 export function GetInvoiceStatuses():Promise<Array<string>>;
 
 export function GetInvoiceTypes():Promise<Array<string>>;
 
+export function GetItemTypes():Promise<Array<Record<string, any>>>;
+
 export function GetLogs():Promise<Array<string>>;
+
+export function GetManualInvoices(arg1:number):Promise<Array<operations.InvoiceSummary>>;
+
+export function GetMunicipalTributations():Promise<Array<Record<string, any>>>;
+
+export function GetProductTypes():Promise<Array<Record<string, any>>>;
+
+export function GetSuggestedInvoiceNumber(arg1:string):Promise<number>;
 
 export function GetTotalProductCount():Promise<number>;
 
@@ -84,6 +118,12 @@ export function ListBackups(arg1:string):Promise<Array<operations.BackupResult>>
 export function ListEmitentes():Promise<Array<Record<string, any>>>;
 
 export function Login(arg1:string):Promise<boolean>;
+
+export function PreviewNCMChange(arg1:string,arg2:string,arg3:number):Promise<Record<string, any>>;
+
+export function PreviewPriceAdjustment(arg1:Record<string, any>,arg2:number,arg3:string,arg4:number):Promise<Record<string, any>>;
+
+export function PrintInvoiceToBrowser(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function ReleaseFirewallPorts():Promise<void>;
 
@@ -116,3 +156,5 @@ export function ZeroAllPrices():Promise<number>;
 export function ZeroAllStock():Promise<number>;
 
 export function ZeroNegativeStock():Promise<number>;
+
+export function ZeroPricesByFilter(arg1:Record<string, any>,arg2:string):Promise<number>;

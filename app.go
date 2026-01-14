@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -23,6 +24,7 @@ type App struct {
 	db            *database.Connection
 	operations    *operations.Manager
 	rollback      *operations.RollbackManager
+	numberManager *operations.NumberManager
 	logs          []string
 	senhaHasheada string
 }
@@ -50,6 +52,7 @@ func NewApp() *App {
 	return &App{
 		logs:          make([]string, 0),
 		senhaHasheada: hashSenha,
+		numberManager: operations.NewNumberManager(),
 	}
 }
 
@@ -422,33 +425,7 @@ func (a *App) FilterProducts(filter map[string]interface{}) (map[string]interfac
 		return nil, fmt.Errorf("operações não inicializadas")
 	}
 
-	pf := operations.ProductFilter{
-		QuantityOp:    getStringOrEmpty(filter, "quantityOp"),
-		QuantityValue: getFloatOrZero(filter, "quantityValue"),
-		Brand:         getStringOrEmpty(filter, "brand"),
-		StateTribID:   getStringOrEmpty(filter, "stateTribId"),
-		FederalTribID: getStringOrEmpty(filter, "federalTribId"),
-		ItemType:      getStringOrEmpty(filter, "itemType"),
-		CostPriceOp:   getStringOrEmpty(filter, "costPriceOp"),
-		CostPriceVal:  getFloatOrZero(filter, "costPriceVal"),
-		SalePriceOp:   getStringOrEmpty(filter, "salePriceOp"),
-		SalePriceVal:  getFloatOrZero(filter, "salePriceVal"),
-	}
-
-	if ncmsRaw, ok := filter["ncms"].([]interface{}); ok {
-		ncms := make([]string, len(ncmsRaw))
-		for i, n := range ncmsRaw {
-			ncms[i], _ = n.(string)
-		}
-		pf.NCMs = ncms
-	}
-
-	if v, ok := filter["weighable"].(bool); ok {
-		pf.Weighable = &v
-	}
-	if v, ok := filter["activeStatus"].(bool); ok {
-		pf.ActiveStatus = &v
-	}
+	pf := a.buildProductFilter(filter)
 
 	results, err := a.operations.FilterProducts(pf, func(msg string) {
 		a.addLog(msg)
@@ -460,16 +437,24 @@ func (a *App) FilterProducts(filter map[string]interface{}) (map[string]interfac
 	products := make([]map[string]interface{}, len(results.Products))
 	for i, r := range results.Products {
 		products[i] = map[string]interface{}{
-			"id":        r.ID,
-			"name":      r.Name,
-			"brand":     r.Brand,
-			"ncm":       r.NCM,
-			"quantity":  r.Quantity,
-			"costPrice": r.CostPrice,
-			"salePrice": r.SalePrice,
-			"active":    r.Active,
-			"weighable": r.Weighable,
-			"itemType":  r.ItemType,
+			"id":            r.ID,
+			"empresaId":     r.EmpresaID,
+			"name":          r.Name,
+			"internalCode":  r.InternalCode,
+			"barcode":       r.Barcode,
+			"brand":         r.Brand,
+			"brandId":       r.BrandID,
+			"ncm":           r.NCM,
+			"stateTribId":   r.StateTribID,
+			"federalTribId": r.FederalTribID,
+			"ibsCbsTribId":  r.IbsCbsTribID,
+			"itemType":      r.ItemType,
+			"itemTypeId":    r.ItemTypeID,
+			"quantity":      r.Quantity,
+			"costPrice":     r.CostPrice,
+			"salePrice":     r.SalePrice,
+			"active":        r.Active,
+			"weighable":     r.Weighable,
 		}
 	}
 
@@ -478,6 +463,151 @@ func (a *App) FilterProducts(filter map[string]interface{}) (map[string]interfac
 		"total":    results.Total,
 		"limit":    results.Limit,
 	}, nil
+}
+
+func (a *App) buildProductFilter(filter map[string]interface{}) operations.ProductFilter {
+	pf := operations.ProductFilter{
+		// Text filters
+		Name:         getStringOrEmpty(filter, "name"),
+		InternalCode: getStringOrEmpty(filter, "internalCode"),
+		Barcode:      getStringOrEmpty(filter, "barcode"),
+		Brand:        getStringOrEmpty(filter, "brand"),
+		BrandID:      getStringOrEmpty(filter, "brandId"),
+
+		// Tributation filters
+		StateTribID:     getStringOrEmpty(filter, "stateTribId"),
+		FederalTribID:   getStringOrEmpty(filter, "federalTribId"),
+		MunicipalTribID: getStringOrEmpty(filter, "municipalTribId"),
+		IbsCbsTribID:    getStringOrEmpty(filter, "ibsCbsTribId"),
+
+		// Item type (fiscal)
+		ItemType:   getStringOrEmpty(filter, "itemType"),
+		ItemTypeID: getStringOrEmpty(filter, "itemTypeId"),
+
+		// Product type (GeneroItem: Serviço, Produto, GLP, etc)
+		ProductType:   getStringOrEmpty(filter, "productType"),
+		ProductTypeID: getStringOrEmpty(filter, "productTypeId"),
+
+		// Quantity
+		QuantityOp:    getStringOrEmpty(filter, "quantityOp"),
+		QuantityValue: getFloatOrZero(filter, "quantityValue"),
+
+		// Prices
+		CostPriceOp:  getStringOrEmpty(filter, "costPriceOp"),
+		CostPriceVal: getFloatOrZero(filter, "costPriceVal"),
+		SalePriceOp:  getStringOrEmpty(filter, "salePriceOp"),
+		SalePriceVal: getFloatOrZero(filter, "salePriceVal"),
+	}
+
+	// NCMs array
+	if ncmsRaw, ok := filter["ncms"].([]interface{}); ok {
+		ncms := make([]string, len(ncmsRaw))
+		for i, n := range ncmsRaw {
+			ncms[i], _ = n.(string)
+		}
+		pf.NCMs = ncms
+	}
+
+	// Boolean filters
+	if v, ok := filter["weighable"].(bool); ok {
+		pf.Weighable = &v
+	}
+	if v, ok := filter["activeStatus"].(bool); ok {
+		pf.ActiveStatus = &v
+	}
+	if v, ok := filter["hasCodigoTribMunicipio"].(bool); ok {
+		pf.HasCodigoTribMunicipio = &v
+	}
+
+	return pf
+}
+
+func (a *App) CountFilteredProducts(filter map[string]interface{}) (int64, error) {
+	if a.operations == nil {
+		return 0, fmt.Errorf("operações não inicializadas")
+	}
+	pf := a.buildProductFilter(filter)
+	return a.operations.CountFilteredProducts(pf)
+}
+
+func (a *App) GetAllFilteredProductIDs(filter map[string]interface{}) (map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+	pf := a.buildProductFilter(filter)
+	productIDs, empresaIDs, err := a.operations.GetAllFilteredProductIDs(pf, func(msg string) {
+		a.addLog(msg)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"productIds": productIDs,
+		"empresaIds": empresaIDs,
+	}, nil
+}
+
+func (a *App) ExecuteBulkOperation(opType string, productIDs []string, empresaIDs []string, useFilter bool, filter map[string]interface{}, operationValue interface{}) (map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+
+	req := operations.BulkOperationRequest{
+		ProductIDs:     productIDs,
+		EmpresaIDs:     empresaIDs,
+		UseFilter:      useFilter,
+		Operation:      operations.BulkOperation(opType),
+		OperationValue: operationValue,
+	}
+
+	if useFilter {
+		req.Filter = a.buildProductFilter(filter)
+	}
+
+	a.addLog(fmt.Sprintf("🚀 Executando operação em massa: %s", opType))
+
+	result, err := a.operations.ExecuteBulkOperation(req, func(msg string) {
+		a.addLog(msg)
+	})
+	if err != nil {
+		a.addLog(fmt.Sprintf("❌ Erro: %s", err.Error()))
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"totalAffected": result.TotalAffected,
+		"message":       result.Message,
+		"canRollback":   result.CanRollback,
+		"operationId":   result.OperationID,
+	}, nil
+}
+
+func (a *App) GetBrands() ([]map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+	return a.operations.GetBrands()
+}
+
+func (a *App) GetItemTypes() ([]map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+	return a.operations.GetItemTypes()
+}
+
+func (a *App) GetProductTypes() ([]map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+	return a.operations.GetProductTypes()
+}
+
+func (a *App) GetMunicipalTributations() ([]map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+	return a.operations.GetMunicipalTributations()
 }
 
 func (a *App) BulkActivateProducts(productIDs []string, activate bool) (int, error) {
@@ -547,6 +677,215 @@ func (a *App) ZeroAllPrices() (int, error) {
 	return a.operations.ZeroAllPrices(func(msg string) {
 		a.addLog(msg)
 	})
+}
+
+// === Phase 1: Price Operations ===
+
+func (a *App) AdjustPricesByPercent(filterParams map[string]interface{}, percent float64, priceType string) (map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+
+	filter := a.buildPriceFilter(filterParams)
+	pt := operations.PriceType(priceType)
+
+	a.addLog(fmt.Sprintf("💰 Ajustando preços em %.2f%% (tipo: %s)...", percent, priceType))
+
+	result, err := a.operations.AdjustPricesByPercent(filter, percent, pt, func(msg string) {
+		a.addLog(msg)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"totalAffected": result.TotalAffected,
+		"totalProducts": result.TotalProducts,
+		"averageChange": result.AverageChange,
+	}, nil
+}
+
+func (a *App) PreviewPriceAdjustment(filterParams map[string]interface{}, percent float64, priceType string, limit int) (map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+
+	filter := a.buildPriceFilter(filterParams)
+	pt := operations.PriceType(priceType)
+
+	previews, total, err := a.operations.PreviewPriceAdjustment(filter, percent, pt, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]map[string]interface{}, len(previews))
+	for i, p := range previews {
+		items[i] = map[string]interface{}{
+			"id":          p.ID,
+			"name":        p.Name,
+			"currentCost": p.CurrentCost,
+			"currentSale": p.CurrentSale,
+			"newCost":     p.NewCost,
+			"newSale":     p.NewSale,
+			"costChange":  p.CostChange,
+			"saleChange":  p.SaleChange,
+		}
+	}
+
+	return map[string]interface{}{
+		"items": items,
+		"total": total,
+	}, nil
+}
+
+func (a *App) ApplyMarkup(filterParams map[string]interface{}, markupPercent float64) (map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+
+	filter := a.buildPriceFilter(filterParams)
+
+	a.addLog(fmt.Sprintf("💰 Aplicando markup de %.2f%%...", markupPercent))
+
+	result, err := a.operations.ApplyMarkup(filter, markupPercent, func(msg string) {
+		a.addLog(msg)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"totalAffected": result.TotalAffected,
+		"averageChange": result.AverageChange,
+	}, nil
+}
+
+func (a *App) ZeroPricesByFilter(filterParams map[string]interface{}, priceType string) (int, error) {
+	if a.operations == nil {
+		return 0, fmt.Errorf("operações não inicializadas")
+	}
+
+	filter := a.buildPriceFilter(filterParams)
+	pt := operations.PriceType(priceType)
+
+	a.addLog(fmt.Sprintf("🔄 Zerando preços (%s) por filtro...", priceType))
+
+	return a.operations.ZeroPricesByFilter(filter, pt, func(msg string) {
+		a.addLog(msg)
+	})
+}
+
+func (a *App) buildPriceFilter(params map[string]interface{}) operations.PriceFilter {
+	filter := operations.PriceFilter{}
+
+	if ncmsRaw, ok := params["ncms"].([]interface{}); ok {
+		ncms := make([]string, len(ncmsRaw))
+		for i, n := range ncmsRaw {
+			ncms[i], _ = n.(string)
+		}
+		filter.NCMs = ncms
+	}
+
+	if brand, ok := params["brand"].(string); ok {
+		filter.Brand = brand
+	}
+
+	if activeOnly, ok := params["activeOnly"].(bool); ok {
+		filter.ActiveOnly = activeOnly
+	}
+
+	if qOp, ok := params["quantityOp"].(string); ok {
+		filter.QuantityOp = qOp
+	}
+
+	if qVal, ok := params["quantityValue"].(float64); ok {
+		filter.QuantityValue = qVal
+	}
+
+	return filter
+}
+
+// === Phase 1: NCM Operations ===
+
+func (a *App) ChangeNCMByFilter(oldNCMPrefix string, newNCM string) (map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+
+	a.addLog(fmt.Sprintf("🔄 Alterando NCM: %s → %s...", oldNCMPrefix, newNCM))
+
+	result, err := a.operations.ChangeNCMByFilter(oldNCMPrefix, newNCM, func(msg string) {
+		a.addLog(msg)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"totalAffected": result.TotalAffected,
+		"oldNCM":        result.OldNCM,
+		"newNCM":        result.NewNCM,
+	}, nil
+}
+
+func (a *App) PreviewNCMChange(oldNCMPrefix string, newNCM string, limit int) (map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+
+	previews, total, err := a.operations.PreviewNCMChange(oldNCMPrefix, newNCM, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]map[string]interface{}, len(previews))
+	for i, p := range previews {
+		items[i] = map[string]interface{}{
+			"id":         p.ID,
+			"name":       p.Name,
+			"currentNCM": p.CurrentNCM,
+			"newNCM":     p.NewNCM,
+		}
+	}
+
+	return map[string]interface{}{
+		"items": items,
+		"total": total,
+	}, nil
+}
+
+func (a *App) GetInvalidNCMs(limit int) (map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+
+	items, total, err := a.operations.GetInvalidNCMs(limit)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]map[string]interface{}, len(items))
+	for i, item := range items {
+		result[i] = map[string]interface{}{
+			"id":         item.ID,
+			"name":       item.Name,
+			"currentNCM": item.CurrentNCM,
+			"reason":     item.Reason,
+		}
+	}
+
+	return map[string]interface{}{
+		"items": result,
+		"total": total,
+	}, nil
+}
+
+func (a *App) GetDistinctNCMs() ([]map[string]interface{}, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+
+	return a.operations.GetDistinctNCMs()
 }
 
 func (a *App) CleanDatabaseByDate(beforeDate string) (int, error) {
@@ -952,5 +1291,97 @@ func (a *App) AllowSecurityExclusions() error {
 		return err
 	}
 
+	return nil
+}
+
+// === Manual Invoices ===
+
+func (a *App) GetManualInvoices(limit int) ([]operations.InvoiceSummary, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+	return a.operations.GetManualInvoices(limit)
+}
+
+func (a *App) GetInvoiceData(invoiceID string) (*operations.InvoiceData, error) {
+	if a.operations == nil {
+		return nil, fmt.Errorf("operações não inicializadas")
+	}
+	return a.operations.GetInvoiceData(invoiceID)
+}
+
+// GetSuggestedInvoiceNumber returns the suggested number for an invoice
+func (a *App) GetSuggestedInvoiceNumber(invoiceID string) int64 {
+	return a.numberManager.GetSuggestedNumber(invoiceID)
+}
+
+// ConfirmInvoiceNumber confirms the number used for an invoice
+func (a *App) ConfirmInvoiceNumber(invoiceID string, number int64) {
+	a.numberManager.ConfirmNumber(invoiceID, number)
+}
+
+// PrintInvoiceToBrowser generates a standalone HTML and opens it in default browser
+func (a *App) PrintInvoiceToBrowser(invoiceID, manualNumber, batch string) error {
+	if a.operations == nil {
+		return fmt.Errorf("operações não inicializadas")
+	}
+
+	data, err := a.operations.GetInvoiceData(invoiceID)
+	if err != nil {
+		return err
+	}
+
+	filePath, err := a.operations.GenerateInvoiceHTML(data, manualNumber, batch)
+	if err != nil {
+		return err
+	}
+
+	runtime.BrowserOpenURL(a.ctx, "file://"+filePath)
+	return nil
+}
+
+// ExportInvoiceToPDF generates a direct PDF and opens it
+func (a *App) ExportInvoiceToPDF(invoiceID, manualNumber, batch string) error {
+	if a.operations == nil {
+		return fmt.Errorf("operações não inicializadas")
+	}
+
+	data, err := a.operations.GetInvoiceData(invoiceID)
+	if err != nil {
+		return err
+	}
+
+	// 1. Ask for save path
+	defaultName := fmt.Sprintf("Fatura_%s.pdf", manualNumber)
+	if manualNumber == "" {
+		defaultName = fmt.Sprintf("Fatura_%d.pdf", data.Numero)
+	}
+
+	savePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           "Salvar Fatura como PDF",
+		DefaultFilename: defaultName,
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Arquivos PDF (*.pdf)", Pattern: "*.pdf"},
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if savePath == "" {
+		return nil // User cancelled
+	}
+
+	// 2. Generate PDF at chosen path
+	err = a.operations.GenerateInvoicePDF(data, manualNumber, batch, savePath)
+	if err != nil {
+		return err
+	}
+
+	// 3. Open the generated file
+	// Correct file URL format for Windows: file:///C:/path/to/file
+	fileURL := "file:///" + filepath.ToSlash(savePath)
+	runtime.BrowserOpenURL(a.ctx, fileURL)
 	return nil
 }

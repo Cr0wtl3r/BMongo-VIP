@@ -182,4 +182,8 @@ const (
 	CollectionEstoquesQuantidade      = "EstoquesQuantidade"
 	CollectionPrecos                  = "Precos"
 	CollectionItensPreco              = "ItensPreco"
+	CollectionMarcas                  = "Marcas"
+	CollectionTiposItem               = "TiposItem"
+	CollectionGenerosItem             = "GenerosItem"
+	CollectionTributacoesMunicipal    = "TributacaoMunicipal"
 )

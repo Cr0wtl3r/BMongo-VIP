@@ -6,8 +6,16 @@ export function AdjustInventoryRebalance(arg1, arg2, arg3) {
   return window['go']['main']['App']['AdjustInventoryRebalance'](arg1, arg2, arg3);
 }
 
+export function AdjustPricesByPercent(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AdjustPricesByPercent'](arg1, arg2, arg3);
+}
+
 export function AllowSecurityExclusions() {
   return window['go']['main']['App']['AllowSecurityExclusions']();
+}
+
+export function ApplyMarkup(arg1, arg2) {
+  return window['go']['main']['App']['ApplyMarkup'](arg1, arg2);
 }
 
 export function BackupDatabase(arg1) {
@@ -42,6 +50,10 @@ export function ChangeInvoiceStatus(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ChangeInvoiceStatus'](arg1, arg2, arg3, arg4);
 }
 
+export function ChangeNCMByFilter(arg1, arg2) {
+  return window['go']['main']['App']['ChangeNCMByFilter'](arg1, arg2);
+}
+
 export function ChangeTributationByNCM(arg1, arg2) {
   return window['go']['main']['App']['ChangeTributationByNCM'](arg1, arg2);
 }
@@ -70,6 +82,14 @@ export function ClearLogs() {
   return window['go']['main']['App']['ClearLogs']();
 }
 
+export function ConfirmInvoiceNumber(arg1, arg2) {
+  return window['go']['main']['App']['ConfirmInvoiceNumber'](arg1, arg2);
+}
+
+export function CountFilteredProducts(arg1) {
+  return window['go']['main']['App']['CountFilteredProducts'](arg1);
+}
+
 export function CreateNewDatabase() {
   return window['go']['main']['App']['CreateNewDatabase']();
 }
@@ -80,6 +100,14 @@ export function DeleteEmitente(arg1) {
 
 export function EnableMEI() {
   return window['go']['main']['App']['EnableMEI']();
+}
+
+export function ExecuteBulkOperation(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['main']['App']['ExecuteBulkOperation'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+export function ExportInvoiceToPDF(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ExportInvoiceToPDF'](arg1, arg2, arg3);
 }
 
 export function FilterProducts(arg1) {
@@ -94,6 +122,14 @@ export function GenerateInventoryReport(arg1, arg2, arg3, arg4, arg5, arg6, arg7
   return window['go']['main']['App']['GenerateInventoryReport'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
 }
 
+export function GetAllFilteredProductIDs(arg1) {
+  return window['go']['main']['App']['GetAllFilteredProductIDs'](arg1);
+}
+
+export function GetBrands() {
+  return window['go']['main']['App']['GetBrands']();
+}
+
 export function GetDigisatProcesses() {
   return window['go']['main']['App']['GetDigisatProcesses']();
 }
@@ -102,12 +138,20 @@ export function GetDigisatServices() {
   return window['go']['main']['App']['GetDigisatServices']();
 }
 
+export function GetDistinctNCMs() {
+  return window['go']['main']['App']['GetDistinctNCMs']();
+}
+
 export function GetFederalTributations() {
   return window['go']['main']['App']['GetFederalTributations']();
 }
 
 export function GetIbsCbsTributations() {
   return window['go']['main']['App']['GetIbsCbsTributations']();
+}
+
+export function GetInvalidNCMs(arg1) {
+  return window['go']['main']['App']['GetInvalidNCMs'](arg1);
 }
 
 export function GetInventoryValue(arg1) {
@@ -122,6 +166,10 @@ export function GetInvoiceByNumber(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetInvoiceByNumber'](arg1, arg2, arg3);
 }
 
+export function GetInvoiceData(arg1) {
+  return window['go']['main']['App']['GetInvoiceData'](arg1);
+}
+
 export function GetInvoiceStatuses() {
   return window['go']['main']['App']['GetInvoiceStatuses']();
 }
@@ -130,8 +178,28 @@ export function GetInvoiceTypes() {
   return window['go']['main']['App']['GetInvoiceTypes']();
 }
 
+export function GetItemTypes() {
+  return window['go']['main']['App']['GetItemTypes']();
+}
+
 export function GetLogs() {
   return window['go']['main']['App']['GetLogs']();
+}
+
+export function GetManualInvoices(arg1) {
+  return window['go']['main']['App']['GetManualInvoices'](arg1);
+}
+
+export function GetMunicipalTributations() {
+  return window['go']['main']['App']['GetMunicipalTributations']();
+}
+
+export function GetProductTypes() {
+  return window['go']['main']['App']['GetProductTypes']();
+}
+
+export function GetSuggestedInvoiceNumber(arg1) {
+  return window['go']['main']['App']['GetSuggestedInvoiceNumber'](arg1);
 }
 
 export function GetTotalProductCount() {
@@ -164,6 +232,18 @@ export function ListEmitentes() {
 
 export function Login(arg1) {
   return window['go']['main']['App']['Login'](arg1);
+}
+
+export function PreviewNCMChange(arg1, arg2, arg3) {
+  return window['go']['main']['App']['PreviewNCMChange'](arg1, arg2, arg3);
+}
+
+export function PreviewPriceAdjustment(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['PreviewPriceAdjustment'](arg1, arg2, arg3, arg4);
+}
+
+export function PrintInvoiceToBrowser(arg1, arg2, arg3) {
+  return window['go']['main']['App']['PrintInvoiceToBrowser'](arg1, arg2, arg3);
 }
 
 export function ReleaseFirewallPorts() {
@@ -228,4 +308,8 @@ export function ZeroAllStock() {
 
 export function ZeroNegativeStock() {
   return window['go']['main']['App']['ZeroNegativeStock']();
+}
+
+export function ZeroPricesByFilter(arg1, arg2) {
+  return window['go']['main']['App']['ZeroPricesByFilter'](arg1, arg2);
 }

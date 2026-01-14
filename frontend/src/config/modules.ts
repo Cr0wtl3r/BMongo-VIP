@@ -121,6 +121,11 @@ export const modules = [
         label: "Alterar Situação",
         desc: "Define situação de NF manualmente",
       },
+      {
+        id: "notas_manuais",
+        label: "Notas Manuais",
+        desc: "Imprimir fatura fiscal manual",
+      },
     ],
   },
   {
